@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew:*)",
+      "Bash(xargs:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(adb devices:*)",
+      "Bash(adb shell am start:*)",
+      "Bash(adb logcat:*)",
+      "Bash(adb shell pidof:*)",
+      "Bash(adb shell am start-foreground-service:*)",
+      "Bash(adb shell input keyevent:*)",
+      "WebSearch"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
