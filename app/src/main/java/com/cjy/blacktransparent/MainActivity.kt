@@ -173,9 +173,26 @@ class MainActivity : ComponentActivity() {
         windowInsetsController.isAppearanceLightNavigationBars = false
     }
 
+    private fun updateWindowFlags() {
+        if (isUIVisible) {
+            // UI可见时，移除NOT_FOCUSABLE和NOT_TOUCHABLE标志，让Activity可以接收事件
+            window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL)
+        } else {
+            // UI不可见（透明状态）时，设置NOT_FOCUSABLE和NOT_TOUCHABLE，让事件穿透
+            window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            window.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+            window.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL)
+        }
+    }
+
     private fun toggleUIVisibility() {
         val newVisibility = !isUIVisible
         isUIVisible = newVisibility
+
+        // 更新窗口标志，让透明状态不拦截事件
+        updateWindowFlags()
 
         if (newVisibility) {
             // UI变为可见，停止保活循环
@@ -212,7 +229,7 @@ class MainActivity : ComponentActivity() {
                 }
                 startActivity(intent)
 
-                delay(500L) // 500毫秒
+                delay(2000L) // 500毫秒
 
                 // 再次切到后台，继续循环
                 moveTaskToBack(true)
@@ -273,6 +290,9 @@ class MainActivity : ComponentActivity() {
         // 处理Intent传递的保活状态
         handleIntent(intent)
 
+        // 根据UI可见性更新窗口标志
+        updateWindowFlags()
+
         // 检查悬浮窗权限
         val hasPermission = hasOverlayPermission()
         // 检查服务是否正在运行
@@ -330,6 +350,8 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // 重新设置透明状态栏和导航栏
         setupTransparentBars()
+        // 根据UI可见性更新窗口标志
+        updateWindowFlags()
         // 用户可能从设置页面返回，检查权限和服务状态
         val hasPermission = hasOverlayPermission()
         isServiceRunning = isOverlayServiceRunning()
@@ -416,6 +438,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        // 如果UI不可见（透明状态），不处理任何按键事件，让事件传递到下层应用
+        if (!isUIVisible) {
+            return false
+        }
+
         // 检查是否按下OK键（DPAD_CENTER或ENTER）
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
             // 如果有权限
