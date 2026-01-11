@@ -13,10 +13,21 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import android.graphics.Color
+import android.view.View
+import android.view.WindowManager
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,6 +36,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -56,6 +68,7 @@ class MainActivity : ComponentActivity() {
     private var overlayService: OverlayService? = null
     private var isBound = false
     private var isServiceRunning = false
+    private var isUIVisible by mutableStateOf(true)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -115,8 +128,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun setupTransparentBars() {
+        // 设置透明状态栏和导航栏
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = Color.TRANSPARENT
+            window.navigationBarColor = Color.TRANSPARENT
+            window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+
+            // 对于Android 10+，使用更现代的方法
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+                window.isStatusBarContrastEnforced = false
+            }
+        }
+
+        // 设置状态栏和导航栏图标颜色（浅色图标）
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.isAppearanceLightStatusBars = false
+        windowInsetsController.isAppearanceLightNavigationBars = false
+    }
+
+    private fun toggleUIVisibility() {
+        isUIVisible = !isUIVisible
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 设置透明状态栏和导航栏
+        setupTransparentBars()
 
         // 检查悬浮窗权限
         val hasPermission = hasOverlayPermission()
@@ -127,7 +169,7 @@ class MainActivity : ComponentActivity() {
             BlackTransparentTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = ComposeColor.Transparent
                 ) {
                     val context = LocalContext.current
 
@@ -161,7 +203,9 @@ class MainActivity : ComponentActivity() {
                             initialAlpha = getCurrentAlpha(),
                             onAlphaChange = { alpha ->
                                 updateOverlayAlpha(alpha)
-                            }
+                            },
+                            isUIVisible = isUIVisible,
+                            onToggleUI = { toggleUIVisibility() }
                         )
                     }
                 }
@@ -171,6 +215,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // 重新设置透明状态栏和导航栏
+        setupTransparentBars()
         // 用户可能从设置页面返回，检查权限和服务状态
         val hasPermission = hasOverlayPermission()
         isServiceRunning = isOverlayServiceRunning()
@@ -180,7 +226,11 @@ class MainActivity : ComponentActivity() {
             BlackTransparentTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = if (isUIVisible) {
+                        ComposeColor.Black
+                    } else {
+                        ComposeColor.Transparent
+                    }
                 ) {
                     val context = LocalContext.current
 
@@ -214,7 +264,9 @@ class MainActivity : ComponentActivity() {
                             initialAlpha = getCurrentAlpha(),
                             onAlphaChange = { alpha ->
                                 updateOverlayAlpha(alpha)
-                            }
+                            },
+                            isUIVisible = isUIVisible,
+                            onToggleUI = { toggleUIVisibility() }
                         )
                     }
                 }
@@ -251,8 +303,19 @@ class MainActivity : ComponentActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         // 检查是否按下OK键（DPAD_CENTER或ENTER）
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-            // 如果有权限，按OK键启动服务并关闭Activity
+            // 如果有权限
             if (hasOverlayPermission()) {
+                // 如果UI不可见，显示UI
+                if (!isUIVisible) {
+                    isUIVisible = true
+                    return true
+                }
+                // 如果UI可见，保持原有行为：启动服务并关闭Activity（仅在需要时）
+                // 注意：这里可能不再需要，因为服务已经在运行
+                // 保留原有逻辑，但用户可以按OK键隐藏UI后再次按OK键显示UI
+                // 这里不处理，让事件传递
+            } else {
+                // 没有权限，按OK键启动服务并关闭Activity（原有逻辑）
                 startOverlayService()
                 finish()
                 return true
@@ -334,8 +397,8 @@ fun PermissionRequestScreen(onRequestPermission: () -> Unit) {
 
         Text(
             text = "BlackTransparent 需要悬浮窗权限来显示亮度调节覆盖层。\n\n" +
-                   "这不会影响其他应用的正常运行，视频播放不会自动暂停。\n\n" +
-                   "请点击下方按钮开启权限，然后在系统设置中允许「显示在其他应用上层」权限。",
+                    "这不会影响其他应用的正常运行，视频播放不会自动暂停。\n\n" +
+                    "请点击下方按钮开启权限，然后在系统设置中允许「显示在其他应用上层」权限。",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
@@ -382,9 +445,9 @@ fun PermissionGrantedScreen(onClose: () -> Unit) {
 
         Text(
             text = "BlackTransparent 已获得悬浮窗权限。\n\n" +
-                   "点击下方按钮或按设备OK键将启动悬浮窗服务。\n\n" +
-                   "服务启动后，屏幕上会显示黑色半透明覆盖层，用于调节亮度。\n\n" +
-                   "使用方向键上下调整透明度，按OK键显示/隐藏控制面板，按返回键退出。",
+                    "点击下方按钮或按设备OK键将启动悬浮窗服务。\n\n" +
+                    "服务启动后，屏幕上会显示黑色半透明覆盖层，用于调节亮度。\n\n" +
+                    "使用方向键上下调整透明度，按OK键显示/隐藏控制面板，按返回键退出。",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
@@ -416,9 +479,17 @@ fun BrightnessControlScreen(
     onBack: () -> Unit,
     onStopService: () -> Unit,
     initialAlpha: Float = 0.5f,
-    onAlphaChange: (Float) -> Unit
+    onAlphaChange: (Float) -> Unit,
+    isUIVisible: Boolean = true,
+    onToggleUI: () -> Unit = {}
 ) {
     val context = LocalContext.current
+
+    // 如果UI不可见，返回空内容
+    if (!isUIVisible) {
+        return
+    }
+
     // 转换：initialAlpha是透明度（0透明最亮，1不透明最暗），UI使用亮度值（0最暗，1最亮）
     val initialBrightness = 1f - initialAlpha
     var currentBrightness by remember { mutableStateOf(initialBrightness) }
@@ -435,135 +506,149 @@ fun BrightnessControlScreen(
         focusRequester.requestFocus()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        Text(
-            text = "亮度调节控制",
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.padding(24.dp))
-
-        // 当前亮度显示（0%最暗，100%最亮）
-        Text(
-            text = "当前亮度: ${(currentBrightness * 100).toInt()}%",
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.padding(16.dp))
-
-        // 亮度滑块
-        Text(
-            text = "调整亮度",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Slider(
-            value = currentBrightness,
-            onValueChange = { newBrightness ->
-                currentBrightness = newBrightness
-                onAlphaChange(1f - newBrightness) // 转换为透明度传递给服务
-            },
-            valueRange = 0f..1f,
-            steps = 19, // 20个档位 (0%, 5%, 10%, ..., 95%, 100%)
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .focusable()
-                .onKeyEvent { keyEvent ->
-                    if (keyEvent.type == KeyEventType.KeyDown) {
-                        when (keyEvent.key) {
-                            Key.DirectionRight -> {
-                                // 右键增加亮度
-                                val newBrightness = (currentBrightness + 0.05f).coerceIn(0f, 1f)
-                                currentBrightness = newBrightness
-                                onAlphaChange(1f - newBrightness) // 转换为透明度传递给服务
-                                true
-                            }
-                            Key.DirectionLeft -> {
-                                // 左键减少亮度
-                                val newBrightness = (currentBrightness - 0.05f).coerceIn(0f, 1f)
-                                currentBrightness = newBrightness
-                                onAlphaChange(1f - newBrightness) // 转换为透明度传递给服务
-                                true
-                            }
-                            else -> false
-                        }
-                    } else {
-                        false
-                    }
-                }
-        )
-
-        Spacer(modifier = Modifier.padding(16.dp))
-
-        // 快速设置按钮
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(onClick = {
-                currentBrightness = 0.75f
-                onAlphaChange(1f - 0.75f) // 转换为透明度25%传递给服务
-            }) {
-                Text(text = "75%")  // 亮度75%
-            }
-            Button(onClick = {
-                currentBrightness = 0.5f
-                onAlphaChange(1f - 0.5f) // 转换为透明度50%传递给服务
-            }) {
-                Text(text = "50%")  // 亮度50%
-            }
-            Button(onClick = {
-                currentBrightness = 0.25f
-                onAlphaChange(1f - 0.25f) // 转换为透明度75%传递给服务
-            }) {
-                Text(text = "25%")  // 亮度25%
-            }
-        }
-
-        Spacer(modifier = Modifier.padding(32.dp))
-
-        // 操作按钮
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.Center
         ) {
-            Button(
-                onClick = onBack,
+            Text(
+                text = "亮度调节控制",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.padding(24.dp))
+
+            // 当前亮度显示（0%最暗，100%最亮）
+            Text(
+                text = "当前亮度: ${(currentBrightness * 100).toInt()}%",
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.padding(16.dp))
+
+            // 亮度滑块
+            Text(
+                text = "调整亮度",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Slider(
+                value = currentBrightness,
+                onValueChange = { newBrightness ->
+                    currentBrightness = newBrightness
+                    onAlphaChange(1f - newBrightness) // 转换为透明度传递给服务
+                },
+                valueRange = 0f..1f,
+                steps = 19, // 20个档位 (0%, 5%, 10%, ..., 95%, 100%)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .focusable()
+                    .onKeyEvent { keyEvent ->
+                        if (keyEvent.type == KeyEventType.KeyDown) {
+                            when (keyEvent.key) {
+                                Key.DirectionRight -> {
+                                    // 右键增加亮度
+                                    val newBrightness = (currentBrightness + 0.05f).coerceIn(0f, 1f)
+                                    currentBrightness = newBrightness
+                                    onAlphaChange(1f - newBrightness) // 转换为透明度传递给服务
+                                    true
+                                }
+
+                                Key.DirectionLeft -> {
+                                    // 左键减少亮度
+                                    val newBrightness = (currentBrightness - 0.05f).coerceIn(0f, 1f)
+                                    currentBrightness = newBrightness
+                                    onAlphaChange(1f - newBrightness) // 转换为透明度传递给服务
+                                    true
+                                }
+
+                                else -> false
+                            }
+                        } else {
+                            false
+                        }
+                    }
+            )
+
+            Spacer(modifier = Modifier.padding(16.dp))
+
+            // 快速设置按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Text(text = "返回（保持服务运行）")
+                Button(onClick = {
+                    currentBrightness = 0.75f
+                    onAlphaChange(1f - 0.75f) // 转换为透明度25%传递给服务
+                }) {
+                    Text(text = "75%")  // 亮度75%
+                }
+                Button(onClick = {
+                    currentBrightness = 0.5f
+                    onAlphaChange(1f - 0.5f) // 转换为透明度50%传递给服务
+                }) {
+                    Text(text = "50%")  // 亮度50%
+                }
+                Button(onClick = {
+                    currentBrightness = 0.25f
+                    onAlphaChange(1f - 0.25f) // 转换为透明度75%传递给服务
+                }) {
+                    Text(text = "25%")  // 亮度25%
+                }
             }
 
-            Button(
-                onClick = onStopService,
-                modifier = Modifier.fillMaxWidth()
+            Spacer(modifier = Modifier.padding(32.dp))
+
+            // 操作按钮
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(text = "停止服务并退出")
+                Button(
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "返回（保持服务运行）")
+                }
+
+                Button(
+                    onClick = onStopService,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "停止服务并退出")
+                }
+
+                Button(
+                    onClick = onToggleUI,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "隐藏")
+                }
             }
+
+            Spacer(modifier = Modifier.padding(16.dp))
+
+            Text(
+                text = "提示：调节滑块实时更改屏幕亮度",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
-        Spacer(modifier = Modifier.padding(16.dp))
-
-        Text(
-            text = "提示：调节滑块实时更改屏幕亮度",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 
