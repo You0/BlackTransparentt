@@ -20,29 +20,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import android.graphics.Color
-import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -56,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cjy.blacktransparent.ui.theme.BlackTransparentTheme
@@ -82,6 +70,27 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val EXTRA_KEEP_ALIVE_MODE = "extra_keep_alive_mode"
         private const val EXTRA_UI_VISIBLE = "extra_ui_visible"
+        private const val EXTRA_FROM_KEEP_ALIVE = "extra_from_keep_alive"
+        private const val PREFS_NAME = "keep_alive_prefs"
+        private const val PREF_KEEP_ALIVE_MODE = "pref_keep_alive_mode"
+        private const val PREF_UI_VISIBLE = "pref_ui_visible"
+    }
+
+    private val sharedPrefs by lazy {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private fun saveKeepAliveState() {
+        with(sharedPrefs.edit()) {
+            putBoolean(PREF_KEEP_ALIVE_MODE, isKeepAliveMode)
+            putBoolean(PREF_UI_VISIBLE, isUIVisible)
+            apply()
+        }
+    }
+
+    private fun loadKeepAliveState() {
+        isKeepAliveMode = sharedPrefs.getBoolean(PREF_KEEP_ALIVE_MODE, false)
+        isUIVisible = sharedPrefs.getBoolean(PREF_UI_VISIBLE, true)
     }
 
     private val connection = object : ServiceConnection {
@@ -177,6 +186,9 @@ class MainActivity : ComponentActivity() {
             isKeepAliveMode = true
             startKeepAliveLoop()
         }
+
+        // 保存状态
+        saveKeepAliveState()
     }
 
     private fun startKeepAliveLoop() {
@@ -196,6 +208,7 @@ class MainActivity : ComponentActivity() {
                     flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     putExtra(EXTRA_KEEP_ALIVE_MODE, true)
                     putExtra(EXTRA_UI_VISIBLE, false)
+                    putExtra(EXTRA_FROM_KEEP_ALIVE, true)
                 }
                 startActivity(intent)
 
@@ -211,19 +224,34 @@ class MainActivity : ComponentActivity() {
         isKeepAliveMode = false
         keepAliveJob?.cancel()
         keepAliveJob = null
+        saveKeepAliveState()
     }
 
     private fun handleIntent(intent: Intent) {
         val keepAliveMode = intent.getBooleanExtra(EXTRA_KEEP_ALIVE_MODE, false)
         val uiVisible = intent.getBooleanExtra(EXTRA_UI_VISIBLE, true)
+        val fromKeepAlive = intent.getBooleanExtra(EXTRA_FROM_KEEP_ALIVE, false)
 
-        if (keepAliveMode) {
+        if (keepAliveMode && fromKeepAlive) {
+            // 来自保活循环的启动
             isKeepAliveMode = true
             isUIVisible = uiVisible
 
             // 如果处于保活模式且UI不可见，确保启动保活循环（如果循环未在运行）
             if (isKeepAliveMode && !isUIVisible && (keepAliveJob == null || !keepAliveJob!!.isActive)) {
                 startKeepAliveLoop()
+            }
+
+            // 保存从Intent恢复的状态
+            saveKeepAliveState()
+        } else {
+            // 用户手动启动或其他情况
+            // 检查当前状态（已在onCreate中加载），如果处于保活模式，则停止循环并显示UI
+            if (isKeepAliveMode) {
+                // 之前处于保活模式，用户手动打开了应用，停止保活循环并显示UI
+                stopKeepAliveLoop()
+                isUIVisible = true
+                saveKeepAliveState() // 保存新的状态
             }
         }
     }
@@ -238,6 +266,9 @@ class MainActivity : ComponentActivity() {
 
         // 设置透明状态栏和导航栏
         setupTransparentBars()
+
+        // 加载保存的保活状态
+        loadKeepAliveState()
 
         // 处理Intent传递的保活状态
         handleIntent(intent)
@@ -508,57 +539,6 @@ fun PermissionRequestScreen(onRequestPermission: () -> Unit) {
 }
 
 @Composable
-fun PermissionGrantedScreen(onClose: () -> Unit) {
-    val context = LocalContext.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "准备启动服务",
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.padding(16.dp))
-
-        Text(
-            text = "BlackTransparent 已获得悬浮窗权限。\n\n" +
-                    "点击下方按钮或按设备OK键将启动悬浮窗服务。\n\n" +
-                    "服务启动后，屏幕上会显示黑色半透明覆盖层，用于调节亮度。\n\n" +
-                    "使用方向键上下调整透明度，按OK键显示/隐藏控制面板，按返回键退出。",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.padding(32.dp))
-
-        Button(
-            onClick = {
-                onClose()
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "启动服务")
-        }
-
-        Spacer(modifier = Modifier.padding(8.dp))
-
-        Text(
-            text = "也可以按设备上的OK键启动服务",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-    }
-}
-
-@Composable
 fun BrightnessControlScreen(
     onBack: () -> Unit,
     onStopService: () -> Unit,
@@ -603,26 +583,29 @@ fun BrightnessControlScreen(
             Text(
                 text = "亮度调节控制",
                 style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.padding(24.dp))
+            Spacer(modifier = Modifier.padding(5.dp))
 
             // 当前亮度显示（0%最暗，100%最亮）
             Text(
                 text = "当前亮度: ${(currentBrightness * 100).toInt()}%",
                 style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.padding(16.dp))
+            Spacer(modifier = Modifier.padding(5.dp))
 
             // 亮度滑块
             Text(
                 text = "调整亮度",
                 style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.fillMaxWidth()
             )
 

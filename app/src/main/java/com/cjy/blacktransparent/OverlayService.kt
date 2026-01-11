@@ -9,7 +9,6 @@ import android.os.Build
 import android.os.IBinder
 import android.os.Binder
 import android.view.Gravity
-import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
@@ -17,12 +16,11 @@ import android.widget.Toast
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.view.KeyEvent
 import androidx.core.app.NotificationCompat
 import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.ProgressBar
-import android.util.TypedValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -48,14 +46,9 @@ class OverlayService : Service(), LifecycleOwner {
     private lateinit var overlayView: View
     private lateinit var params: LayoutParams
     private lateinit var blackOverlayView: View
-    private lateinit var controlPanel: LinearLayout
     private lateinit var progressBar: ProgressBar
     private lateinit var alphaText: TextView
-
     private var overlayAlpha = 0.5f // 初始透明度 50%
-    private var isBrightnessControlVisible = false
-    private var isActiveMode = false // 激活模式，长按MENU键切换
-    private var menuKeyDownTime = 0L // MENU键按下时间戳
 
     private fun createNotification(): Notification {
         // 创建通知渠道（Android 8.0+）
@@ -101,20 +94,6 @@ class OverlayService : Service(), LifecycleOwner {
     }
 
     fun getAlpha(): Float = overlayAlpha
-
-    private fun updateControlPanelVisibility() {
-        if (::controlPanel.isInitialized) {
-            controlPanel.visibility = if (isBrightnessControlVisible) View.VISIBLE else View.GONE
-        }
-    }
-
-    private fun dpToPx(dp: Int): Int {
-        return TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            dp.toFloat(),
-            resources.displayMetrics
-        ).toInt()
-    }
 
     override fun onCreate() {
         super.onCreate()
@@ -189,96 +168,7 @@ class OverlayService : Service(), LifecycleOwner {
         }
         rootView.addView(blackOverlayView)
 
-        // 控制面板（居中）
-        controlPanel = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setBackgroundColor(0x80000000.toInt()) // 半透明黑色背景
-            setPadding(dpToPx(48), dpToPx(24), dpToPx(48), dpToPx(24))
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = Gravity.CENTER
-            }
-            visibility = if (isBrightnessControlVisible) View.VISIBLE else View.GONE
-        }
-
-        // 标题
-        val titleText = TextView(this).apply {
-            text = "亮度调节"
-            setTextColor(0xFFFFFFFF.toInt())
-            textSize = 20f
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                bottomMargin = dpToPx(16)
-            }
-        }
-        controlPanel.addView(titleText)
-
-        // 进度条
-        progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = 100
-            progress = (100 - overlayAlpha * 100).toInt()  // 显示亮度值
-            progressDrawable.setTint(0xFFFFFFFF.toInt())
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dpToPx(24)
-                bottomMargin = dpToPx(24)
-            }
-        }
-        controlPanel.addView(progressBar)
-
-        // 当前亮度（透明度0%最亮，100%最暗）
-        alphaText = TextView(this).apply {
-            text = "亮度: ${(100 - overlayAlpha * 100).toInt()}%"
-            setTextColor(0xFFFFFFFF.toInt())
-            textSize = 16f
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-        controlPanel.addView(alphaText)
-
-        // 提示文字
-        val hintText = TextView(this).apply {
-            text = "使用方向键上下左右调整，返回键退出"
-            setTextColor(0xFFCCCCCC.toInt())
-            textSize = 14f
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dpToPx(16)
-            }
-        }
-        controlPanel.addView(hintText)
-
-        rootView.addView(controlPanel)
-
-        overlayView = rootView.apply {
-            // 设置按键监听
-            setOnKeyListener { _, keyCode, event ->
-                when (event.action) {
-                    KeyEvent.ACTION_DOWN -> handleKeyDown(keyCode, event)
-                    KeyEvent.ACTION_UP -> handleKeyUp(keyCode, event)
-                    else -> false
-                }
-            }
-
-            // 窗口设置了FLAG_NOT_FOCUSABLE，无法接收按键事件
-            // isFocusable = true
-            // isFocusableInTouchMode = true
-            // requestFocus()
-        }
+        overlayView = rootView
 
         // 添加悬浮窗到WindowManager
         try {
@@ -341,102 +231,6 @@ class OverlayService : Service(), LifecycleOwner {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-
-    private fun handleKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-
-        // 处理MENU键按下，记录时间
-        if (keyCode == KeyEvent.KEYCODE_MENU) {
-            menuKeyDownTime = System.currentTimeMillis()
-            return false // 不消费MENU键按下，让其他应用也能接收
-        }
-
-        // 非激活模式下，只监听MENU键，其他按键全部传递
-        if (!isActiveMode) {
-            return false
-        }
-
-        // 激活模式下，处理亮度控制按键
-        return when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_CENTER, // OK键
-            KeyEvent.KEYCODE_ENTER -> {
-                // 显示/隐藏亮度调节控件
-                isBrightnessControlVisible = !isBrightnessControlVisible
-                updateControlPanelVisibility()
-                true
-            }
-            KeyEvent.KEYCODE_DPAD_UP -> {
-                if (isBrightnessControlVisible) {
-                    // 增加透明度（使覆盖层更暗）
-                    overlayAlpha = (overlayAlpha + 0.05f).coerceIn(0f, 1f)
-                    updateAlpha()
-                    true
-                } else {
-                    false
-                }
-            }
-            KeyEvent.KEYCODE_DPAD_DOWN -> {
-                if (isBrightnessControlVisible) {
-                    // 减少透明度（使覆盖层更亮）
-                    overlayAlpha = (overlayAlpha - 0.05f).coerceIn(0f, 1f)
-                    updateAlpha()
-                    true
-                } else {
-                    false
-                }
-            }
-            KeyEvent.KEYCODE_DPAD_LEFT -> {
-                if (isBrightnessControlVisible) {
-                    // 左键减少透明度（使覆盖层更亮）
-                    overlayAlpha = (overlayAlpha - 0.05f).coerceIn(0f, 1f)
-                    updateAlpha()
-                    true
-                } else {
-                    false
-                }
-            }
-            KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                if (isBrightnessControlVisible) {
-                    // 右键增加透明度（使覆盖层更暗）
-                    overlayAlpha = (overlayAlpha + 0.05f).coerceIn(0f, 1f)
-                    updateAlpha()
-                    true
-                } else {
-                    false
-                }
-            }
-            KeyEvent.KEYCODE_BACK -> {
-                if (isBrightnessControlVisible) {
-                    // 返回键隐藏亮度调节控件
-                    isBrightnessControlVisible = false
-                    updateControlPanelVisibility()
-                    true
-                } else {
-                    // 返回键停止服务
-                    stopSelf()
-                    true
-                }
-            }
-            else -> false
-        }
-    }
-
-    private fun handleKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        // 处理MENU键抬起，检测长按
-        if (keyCode == KeyEvent.KEYCODE_MENU) {
-            val pressDuration = System.currentTimeMillis() - menuKeyDownTime
-            if (pressDuration >= LONG_PRESS_THRESHOLD_MS) {
-                // 长按MENU键，切换激活模式
-                isActiveMode = !isActiveMode
-                // 激活时显示控制面板，非激活时隐藏
-                isBrightnessControlVisible = isActiveMode
-                updateControlPanelVisibility()
-                return true // 消费长按事件，防止触发其他菜单
-            }
-            // 短按MENU键，不处理，传递给其他应用
-        }
-        return false
     }
 }
 
