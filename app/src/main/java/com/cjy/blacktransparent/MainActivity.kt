@@ -13,6 +13,12 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import android.graphics.Color
 import android.view.View
 import android.view.WindowManager
@@ -69,6 +75,14 @@ class MainActivity : ComponentActivity() {
     private var isBound = false
     private var isServiceRunning = false
     private var isUIVisible by mutableStateOf(true)
+    private var isKeepAliveMode by mutableStateOf(false)
+    private var keepAliveJob: Job? = null
+    private val keepAliveScope = CoroutineScope(Dispatchers.Main)
+
+    companion object {
+        private const val EXTRA_KEEP_ALIVE_MODE = "extra_keep_alive_mode"
+        private const val EXTRA_UI_VISIBLE = "extra_ui_visible"
+    }
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -151,7 +165,72 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun toggleUIVisibility() {
-        isUIVisible = !isUIVisible
+        val newVisibility = !isUIVisible
+        isUIVisible = newVisibility
+
+        if (newVisibility) {
+            // UI变为可见，停止保活循环
+            stopKeepAliveLoop()
+            isKeepAliveMode = false
+        } else {
+            // UI变为隐藏，启动保活循环
+            isKeepAliveMode = true
+            startKeepAliveLoop()
+        }
+    }
+
+    private fun startKeepAliveLoop() {
+        // 如果已有活跃的循环任务，先取消
+        if (keepAliveJob?.isActive == true) {
+            keepAliveJob?.cancel()
+        }
+
+        keepAliveJob = keepAliveScope.launch {
+            while (isKeepAliveMode && isActive) {
+                // 切到后台
+                moveTaskToBack(true)
+                delay(5000L) // 5秒
+
+                // 切回前台（通过启动Activity自身）
+                val intent = Intent(this@MainActivity, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra(EXTRA_KEEP_ALIVE_MODE, true)
+                    putExtra(EXTRA_UI_VISIBLE, false)
+                }
+                startActivity(intent)
+
+                delay(500L) // 500毫秒
+
+                // 再次切到后台，继续循环
+                moveTaskToBack(true)
+            }
+        }
+    }
+
+    private fun stopKeepAliveLoop() {
+        isKeepAliveMode = false
+        keepAliveJob?.cancel()
+        keepAliveJob = null
+    }
+
+    private fun handleIntent(intent: Intent) {
+        val keepAliveMode = intent.getBooleanExtra(EXTRA_KEEP_ALIVE_MODE, false)
+        val uiVisible = intent.getBooleanExtra(EXTRA_UI_VISIBLE, true)
+
+        if (keepAliveMode) {
+            isKeepAliveMode = true
+            isUIVisible = uiVisible
+
+            // 如果处于保活模式且UI不可见，确保启动保活循环（如果循环未在运行）
+            if (isKeepAliveMode && !isUIVisible && (keepAliveJob == null || !keepAliveJob!!.isActive)) {
+                startKeepAliveLoop()
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.let { handleIntent(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -159,6 +238,9 @@ class MainActivity : ComponentActivity() {
 
         // 设置透明状态栏和导航栏
         setupTransparentBars()
+
+        // 处理Intent传递的保活状态
+        handleIntent(intent)
 
         // 检查悬浮窗权限
         val hasPermission = hasOverlayPermission()
@@ -296,6 +378,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // 停止保活循环
+        stopKeepAliveLoop()
         // 确保解绑
         unbindOverlayService()
     }
@@ -305,9 +389,9 @@ class MainActivity : ComponentActivity() {
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
             // 如果有权限
             if (hasOverlayPermission()) {
-                // 如果UI不可见，显示UI
+                // 如果UI不可见，显示UI并停止保活循环
                 if (!isUIVisible) {
-                    isUIVisible = true
+                    toggleUIVisibility()  // 这会显示UI并停止保活循环
                     return true
                 }
                 // 如果UI可见，保持原有行为：启动服务并关闭Activity（仅在需要时）
@@ -634,7 +718,7 @@ fun BrightnessControlScreen(
                     onClick = onToggleUI,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = "隐藏")
+                    Text(text = "隐藏并保活")
                 }
             }
 
