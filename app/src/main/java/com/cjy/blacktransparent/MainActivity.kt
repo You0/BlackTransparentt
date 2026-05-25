@@ -4,11 +4,15 @@ import android.content.Intent
 import android.content.ComponentName
 import android.content.ServiceConnection
 import android.content.Context
+import android.media.AudioManager
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -68,6 +72,7 @@ class MainActivity : ComponentActivity() {
     private val keepAliveScope = CoroutineScope(Dispatchers.Main)
 
     companion object {
+        private const val TAG = "MainActivity"
         private const val EXTRA_KEEP_ALIVE_MODE = "extra_keep_alive_mode"
         private const val EXTRA_UI_VISIBLE = "extra_ui_visible"
         private const val EXTRA_FROM_KEEP_ALIVE = "extra_from_keep_alive"
@@ -151,6 +156,39 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * 检测当前设备是否有视频/音频正在播放
+     * 使用 AudioManager 和 MediaSessionManager 进行检测
+     */
+    private fun isVideoPlaying(): Boolean {
+        // 方法1: 检查是否有音乐/媒体音频流在播放（覆盖大多数视频播放场景）
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (audioManager.isMusicActive) {
+            Log.d(TAG, "isVideoPlaying: AudioManager 检测到媒体音频在播放")
+            return true
+        }
+
+        // 方法2: 检查活跃的媒体会话状态（API 21+）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+                val sessions = mediaSessionManager.getActiveSessions(null)
+                for (controller in sessions) {
+                    val state = controller.playbackState
+                    if (state != null && state.state == PlaybackState.STATE_PLAYING) {
+                        Log.d(TAG, "isVideoPlaying: MediaSession 检测到播放中")
+                        return true
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "isVideoPlaying: getActiveSessions 异常: ${e.message}")
+            }
+        }
+
+        Log.d(TAG, "isVideoPlaying: 未检测到播放")
+        return false
+    }
+
     private fun setupTransparentBars() {
         // 设置透明状态栏和导航栏
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -190,16 +228,19 @@ class MainActivity : ComponentActivity() {
     private fun toggleUIVisibility() {
         val newVisibility = !isUIVisible
         isUIVisible = newVisibility
+        Log.d(TAG, "toggleUIVisibility: isUIVisible=$newVisibility")
 
         // 更新窗口标志，让透明状态不拦截事件
         updateWindowFlags()
 
         if (newVisibility) {
             // UI变为可见，停止保活循环
+            Log.d(TAG, "toggleUIVisibility: UI 变为可见，停止保活")
             stopKeepAliveLoop()
             isKeepAliveMode = false
         } else {
             // UI变为隐藏，启动保活循环
+            Log.d(TAG, "toggleUIVisibility: UI 变为隐藏，启动保活")
             isKeepAliveMode = true
             startKeepAliveLoop()
         }
@@ -209,18 +250,57 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startKeepAliveLoop() {
+        Log.d(TAG, "startKeepAliveLoop: 启动保活循环")
         // 如果已有活跃的循环任务，先取消
         if (keepAliveJob?.isActive == true) {
+            Log.d(TAG, "startKeepAliveLoop: 取消旧循环任务")
             keepAliveJob?.cancel()
         }
 
         keepAliveJob = keepAliveScope.launch {
+            Log.d(TAG, "startKeepAliveLoop: 循环协程开始")
+            var loopCount = 0
             while (isKeepAliveMode && isActive) {
+                loopCount++
+                Log.d(TAG, "保活循环 #$loopCount: 开始")
+
+                // ===== 视频播放检测 =====
+                if (isVideoPlaying()) {
+                    Log.d(TAG, "保活循环 #$loopCount: 视频播放中，保持前台透明")
+                    // 视频正在播放: 暂停前后台切换，保持前台但完全透明
+                    isUIVisible = false
+                    updateWindowFlags()
+                    delay(3000L) // 3秒后再次检测
+                    continue
+                }
+
+                Log.d(TAG, "保活循环 #$loopCount: 视频未播放，执行前后台切换")
+
+                // ===== 视频未播放: 正常保活前后台切换 =====
                 // 切到后台
+                Log.d(TAG, "保活循环 #$loopCount: moveTaskToBack")
                 moveTaskToBack(true)
                 delay(5000L) // 5秒
 
+                // 在切回前台之前再次检测，防止后台期间视频开始播放
+                if (isVideoPlaying()) {
+                    Log.d(TAG, "保活循环 #$loopCount: 后台期间视频开始播放，回到前台透明")
+                    // 后台期间视频开始播放，回到前台并保持透明
+                    val intent = Intent(this@MainActivity, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        putExtra(EXTRA_KEEP_ALIVE_MODE, true)
+                        putExtra(EXTRA_UI_VISIBLE, false)
+                        putExtra(EXTRA_FROM_KEEP_ALIVE, true)
+                    }
+                    startActivity(intent)
+                    isUIVisible = false
+                    updateWindowFlags()
+                    // 回到循环开始，由视频检测逻辑处理
+                    continue
+                }
+
                 // 切回前台（通过启动Activity自身）
+                Log.d(TAG, "保活循环 #$loopCount: 切回前台")
                 val intent = Intent(this@MainActivity, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     putExtra(EXTRA_KEEP_ALIVE_MODE, true)
@@ -229,15 +309,18 @@ class MainActivity : ComponentActivity() {
                 }
                 startActivity(intent)
 
-                delay(2000L) // 500毫秒
+                delay(2000L) // 2秒
 
+                Log.d(TAG, "保活循环 #$loopCount: 再次切到后台")
                 // 再次切到后台，继续循环
                 moveTaskToBack(true)
             }
+            Log.d(TAG, "startKeepAliveLoop: 循环协程结束")
         }
     }
 
     private fun stopKeepAliveLoop() {
+        Log.d(TAG, "stopKeepAliveLoop: 停止保活循环")
         isKeepAliveMode = false
         keepAliveJob?.cancel()
         keepAliveJob = null
@@ -249,13 +332,17 @@ class MainActivity : ComponentActivity() {
         val uiVisible = intent.getBooleanExtra(EXTRA_UI_VISIBLE, true)
         val fromKeepAlive = intent.getBooleanExtra(EXTRA_FROM_KEEP_ALIVE, false)
 
+        Log.d(TAG, "handleIntent: keepAliveMode=$keepAliveMode, uiVisible=$uiVisible, fromKeepAlive=$fromKeepAlive")
+
         if (keepAliveMode && fromKeepAlive) {
             // 来自保活循环的启动
+            Log.d(TAG, "handleIntent: 来自保活循环，保持保活模式")
             isKeepAliveMode = true
             isUIVisible = uiVisible
 
             // 如果处于保活模式且UI不可见，确保启动保活循环（如果循环未在运行）
             if (isKeepAliveMode && !isUIVisible && (keepAliveJob == null || !keepAliveJob!!.isActive)) {
+                Log.d(TAG, "handleIntent: 保活循环未运行，重新启动")
                 startKeepAliveLoop()
             }
 
@@ -265,10 +352,13 @@ class MainActivity : ComponentActivity() {
             // 用户手动启动或其他情况
             // 检查当前状态（已在onCreate中加载），如果处于保活模式，则停止循环并显示UI
             if (isKeepAliveMode) {
+                Log.d(TAG, "handleIntent: 用户手动打开，停止保活并显示UI")
                 // 之前处于保活模式，用户手动打开了应用，停止保活循环并显示UI
                 stopKeepAliveLoop()
                 isUIVisible = true
                 saveKeepAliveState() // 保存新的状态
+            } else {
+                Log.d(TAG, "handleIntent: 用户手动打开，当前不在保活模式")
             }
         }
     }
