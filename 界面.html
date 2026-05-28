@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>亮度调节 · 安卓TV</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #0b0b12, #000000);
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', system-ui, -apple-system, 'SF Pro Display', 'Helvetica Neue', Roboto, sans-serif;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .tv-panel {
+            max-width: 1280px;
+            width: 100%;
+            background: rgba(8, 8, 12, 0.82);
+            backdrop-filter: blur(20px);
+            border-radius: 48px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.03);
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 32px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            font-size: 26px;
+            filter: drop-shadow(0 0 3px #00a6ff);
+        }
+        .logo-area h1 {
+            font-size: 24px;
+            font-weight: 550;
+            color: #f0f4ff;
+            letter-spacing: -0.2px;
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #0affb3;
+            border-radius: 10px;
+            box-shadow: 0 0 6px #0affb3;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.5; transform: scale(0.9);}
+            100% { opacity: 1; transform: scale(1.2);}
+        }
+
+        .core-dual {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 28px;
+            padding: 32px 32px 36px;
+        }
+
+        .brightness-hero {
+            background: rgba(18, 18, 24, 0.6);
+            border-radius: 40px;
+            padding: 28px 26px;
+            border: 1px solid rgba(255,255,255,0.04);
+            backdrop-filter: blur(4px);
+        }
+        .bright-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .bright-header h2 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #eef3ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .percent-giant {
+            font-size: 56px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFF, #92caff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1;
+        }
+        .percent-sign {
+            font-size: 28px;
+            color: #9aaec9;
+        }
+
+        .slider-area {
+            margin: 28px 0 32px;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #aaaec5;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #1c567b, #74c0ff);
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 36px;
+            height: 36px;
+            background: white;
+            border-radius: 50%;
+            border: 2px solid #0e7aff;
+            box-shadow: 0 0 12px #2d9eff;
+            cursor: pointer;
+            transition: 0.08s linear;
+        }
+        input[type="range"].focused::-webkit-slider-thumb {
+            transform: scale(1.2);
+            border-color: #ffc107;
+            box-shadow: 0 0 18px #ffb347;
+        }
+
+        .presets-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+        }
+        .preset-btn {
+            flex: 1;
+            background: #20222c;
+            border: none;
+            border-radius: 60px;
+            padding: 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ccdeff;
+            transition: all 0.12s;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+        }
+        .preset-btn.active {
+            background: #0a84ff;
+            color: white;
+            box-shadow: 0 6px 14px rgba(10,132,255,0.3);
+        }
+        .preset-btn.focused {
+            background: #326b9e;
+            transform: scale(1.02);
+            color: white;
+        }
+        .preset-btn.active.focused {
+            background: #0a84ff;
+            transform: scale(1.04);
+        }
+
+        .control-pod {
+            background: rgba(18, 18, 24, 0.6);
+            border-radius: 40px;
+            padding: 28px 26px;
+            border: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .pod-section {
+            background: rgba(0,0,0,0.35);
+            border-radius: 32px;
+            padding: 18px 20px;
+        }
+        .pod-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 500;
+            color: #90a0bb;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dual-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .tv-action-btn {
+            width: 100%;
+            background: #1e1e24;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 56px;
+            padding: 14px 12px;
+            font-size: 16px;
+            font-weight: 540;
+            color: #e0e4f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.12s ease;
+            cursor: pointer;
+        }
+        .tv-action-btn.focused {
+            background: #2a2e3c;
+            border-color: #0a84ff;
+            transform: scale(1.02);
+            box-shadow: 0 0 0 2px rgba(10,132,255,0.3);
+            color: white;
+        }
+        .pip-active-style {
+            background: #1e3a3f;
+            border-color: #00c8e8;
+            color: #e0f4ff;
+        }
+        .pip-active-style.focused {
+            background: #1e4a52;
+            border-color: #00e0ff;
+        }
+        .recommend-badge {
+            background: transparent;
+            border: 1px solid rgba(100, 180, 250, 0.6);
+            color: #8abdf0;
+            font-size: 10px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+        }
+        .btn-note {
+            font-size: 11px;
+            color: #8a98b0;
+            text-align: center;
+            margin-top: 6px;
+            margin-bottom: 4px;
+        }
+        .exit-container {
+            margin-top: 8px;
+        }
+        .exit-danger {
+            background: #2a1c1c;
+            border-color: rgba(255, 80, 70, 0.3);
+            color: #ffaaa0;
+        }
+        .exit-danger.focused {
+            background: #4a2a28;
+            border-color: #ff6a5c;
+            color: white;
+        }
+        .helper-footer {
+            font-size: 11px;
+            color: #7a88a0;
+            text-align: center;
+            margin-top: 18px;
+            padding-top: 8px;
+            border-top: 1px solid #22242e;
+        }
+        .spec-desc {
+            font-size: 11px;
+            color: #a0acc8;
+            background: rgba(0,0,0,0.3);
+            border-radius: 28px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        .focused {
+            outline: none;
+            box-shadow: 0 0 0 2px #0a84ff, 0 0 0 5px rgba(10,132,255,0.2);
+        }
+
+        @media (max-width: 840px) {
+            .core-dual {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 24px;
+            }
+            .tv-panel {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="tv-panel">
+    <div class="top-bar">
+        <div class="logo-area">
+            <span class="logo-icon">✨</span>
+            <h1>亮度调节</h1>
+            <div class="live-dot"></div>
+        </div>
+    </div>
+
+    <div class="core-dual">
+        <!-- 左侧亮度调节 -->
+        <div class="brightness-hero">
+            <div class="bright-header">
+                <h2>☀️ 屏幕亮度</h2>
+                <div class="percent-giant">
+                    <span id="giantBright">50</span><span class="percent-sign">%</span>
+                </div>
+            </div>
+            <div class="slider-area">
+                <div class="slider-label-row">
+                    <span>🕹️ 遥控器左右微调</span>
+                    <span id="sliderValueLabel">50%</span>
+                </div>
+                <input type="range" id="brightSlider" min="0" max="100" value="50" step="1">
+            </div>
+            <div class="presets-row">
+                <button class="preset-btn" data-value="25">🌙 25%</button>
+                <button class="preset-btn" data-value="60">☁️ 60%</button>
+                <button class="preset-btn" data-value="100">☀️ 100%</button>
+            </div>
+            <div class="helper-footer" style="margin-top: 24px; text-align: left;">
+                ← → 调节亮度
+            </div>
+        </div>
+
+        <!-- 右侧控制区 -->
+        <div class="control-pod">
+            <div class="pod-section">
+                <div class="pod-title">
+                    <span>⚙️ 保活策略</span>
+                </div>
+                <div class="dual-actions">
+                    <div>
+                        <button class="tv-action-btn" id="keepAliveBtn">
+                            🔒 常驻保活
+                            <span class="recommend-badge">推荐</span>
+                        </button>
+                        <div class="btn-note">点击后自动后台运行</div>
+                    </div>
+                    <div>
+                        <button class="tv-action-btn" id="pipBtn">
+                            🖼️ 画中画保活
+                        </button>
+                        <div class="btn-note" id="pipNote">爱奇艺/腾讯专用</div>
+                    </div>
+                </div>
+                <div class="spec-desc">
+                    🎬 画中画模式 · 右下角会有一个小阴影区域（保活标识）
+                </div>
+            </div>
+            <div class="exit-container">
+                <button class="tv-action-btn exit-danger" id="exitBtn">
+                    🚪 退出应用
+                </button>
+                <div class="helper-footer" style="margin-top: 10px;">
+                    停止保活并退出
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        const slider = document.getElementById('brightSlider');
+        const giantBright = document.getElementById('giantBright');
+        const sliderValueLabel = document.getElementById('sliderValueLabel');
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        const keepAliveBtn = document.getElementById('keepAliveBtn');
+        const pipBtn = document.getElementById('pipBtn');
+        const pipNote = document.getElementById('pipNote');
+        const exitBtn = document.getElementById('exitBtn');
+        
+        let pipActive = false;
+        let keepAliveActive = false;
+        
+        function setBrightness(value) {
+            let v = Math.min(100, Math.max(0, Math.round(value)));
+            if (isNaN(v)) v = 50;
+            slider.value = v;
+            giantBright.innerText = v;
+            sliderValueLabel.innerText = v + '%';
+            
+            presetBtns.forEach(btn => {
+                let btnVal = parseInt(btn.dataset.value);
+                if (btnVal === v) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            if (typeof Android !== 'undefined' && Android.setBrightness) {
+                Android.setBrightness(v);
+            } else {
+                console.log('[模拟] 亮度:', v);
+            }
+        }
+        
+        function adjustBrightness(delta) {
+            let newVal = parseInt(slider.value) + delta;
+            newVal = Math.min(100, Math.max(0, newVal));
+            setBrightness(newVal);
+        }
+        
+        function stopKeepAlive() {
+            if (typeof Android !== 'undefined' && Android.stopKeepAlive) Android.stopKeepAlive();
+            keepAliveActive = false;
+            keepAliveBtn.classList.remove('pip-active-style');
+        }
+        
+        function startKeepAlive() {
+            if (typeof Android !== 'undefined' && Android.startKeepAlive) Android.startKeepAlive();
+            keepAliveActive = true;
+        }
+        
+        function stopPip() {
+            if (typeof Android !== 'undefined' && Android.stopPipMode) Android.stopPipMode();
+            pipActive = false;
+            pipBtn.classList.remove('pip-active-style');
+            pipNote.innerText = '爱奇艺/腾讯专用';
+        }
+        
+        function startPip() {
+            if (typeof Android !== 'undefined' && Android.startPipMode) Android.startPipMode();
+            pipActive = true;
+            pipBtn.classList.add('pip-active-style');
+            pipNote.innerText = '开启后请按 Home 键';
+        }
+        
+        function onKeepAliveClick() {
+            if (keepAliveActive) return;
+            if (pipActive) stopPip();
+            startKeepAlive();
+        }
+        
+        function onPipClick() {
+            if (pipActive) return;
+            if (keepAliveActive) stopKeepAlive();
+            startPip();
+        }
+        
+        function exitApplication() {
+            if (keepAliveActive && typeof Android !== 'undefined' && Android.stopKeepAlive) Android.stopKeepAlive();
+            if (pipActive && typeof Android !== 'undefined' && Android.stopPipMode) Android.stopPipMode();
+            if (typeof Android !== 'undefined' && Android.exitApp) {
+                Android.exitApp();
+            } else {
+                if (window.close) window.close();
+                alert('[演示] 退出应用');
+            }
+        }
+        
+        slider.addEventListener('input', (e) => setBrightness(parseInt(e.target.value)));
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                let val = parseInt(btn.dataset.value);
+                if (!isNaN(val)) setBrightness(val);
+            });
+        });
+        keepAliveBtn.addEventListener('click', onKeepAliveClick);
+        pipBtn.addEventListener('click', onPipClick);
+        exitBtn.addEventListener('click', exitApplication);
+        
+        if (typeof Android !== 'undefined' && Android.getBrightness) {
+            try {
+                let initVal = Android.getBrightness();
+                if (typeof initVal === 'number') setBrightness(initVal);
+            } catch(e) {}
+        } else {
+            setBrightness(50);
+        }
+        
+        // 焦点导航
+        const focusable = [slider, ...presetBtns, keepAliveBtn, pipBtn, exitBtn];
+        function getCenter(el) {
+            const r = el.getBoundingClientRect();
+            return { x: r.left + r.width/2, y: r.top + r.height/2 };
+        }
+        function findBest(dir, cur) {
+            const c = getCenter(cur);
+            let best = null, bestScore = -Infinity;
+            for (let t of focusable) {
+                if (t === cur || !t.offsetParent) continue;
+                const tc = getCenter(t);
+                const dx = tc.x - c.x, dy = tc.y - c.y;
+                let ok = false, dist = 0;
+                if (dir === 'ArrowRight' && dx > 5) { ok = true; dist = Math.hypot(dx, dy); if (Math.abs(dy) > 60) dist *= 1.3; }
+                else if (dir === 'ArrowLeft' && dx < -5) { ok = true; dist = Math.hypot(dx, dy); if (Math.abs(dy) > 60) dist *= 1.3; }
+                else if (dir === 'ArrowDown' && dy > 5) { ok = true; dist = Math.hypot(dx, dy); if (Math.abs(dx) > 100) dist *= 1.2; }
+                else if (dir === 'ArrowUp' && dy < -5) { ok = true; dist = Math.hypot(dx, dy); if (Math.abs(dx) > 100) dist *= 1.2; }
+                if (ok) { const score = 1/(dist+0.01); if (score > bestScore) { bestScore = score; best = t; } }
+            }
+            return best;
+        }
+        function setFocus(el) {
+            if (!el) return;
+            focusable.forEach(f => f.classList.remove('focused'));
+            el.classList.add('focused');
+            if (el !== slider) el.focus({ preventScroll: true });
+            else slider.focus({ preventScroll: true });
+        }
+        function getCurrent() {
+            for (let f of focusable) if (f.classList.contains('focused')) return f;
+            return slider;
+        }
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            const cur = getCurrent();
+            if (cur === slider && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+                e.preventDefault();
+                adjustBrightness(key === 'ArrowLeft' ? -2 : 2);
+                return;
+            }
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+                e.preventDefault();
+                const next = findBest(key, cur);
+                if (next) setFocus(next);
+                else { cur.style.transform = 'scale(1.01)'; setTimeout(() => { if(cur) cur.style.transform = ''; }, 100); }
+                return;
+            }
+            if (key === 'Enter' || key === ' ') {
+                e.preventDefault();
+                getCurrent().click();
+            }
+        });
+        setFocus(slider);
+    })();
+</script>
+</body>
+</html>

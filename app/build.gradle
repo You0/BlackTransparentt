@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace 'com.cjy.blacktransparent'
+    namespace 'com.cjy.n5.light'
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId "com.cjy.blacktransparent"
+        applicationId "com.cjy.n5.light"
         minSdk 24
         targetSdk 36
         versionCode 1

@@ -1,4 +1,4 @@
-package com.cjy.blacktransparent.ui.theme
+package com.cjy.n5.light.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

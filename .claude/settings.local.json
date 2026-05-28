@@ -11,7 +11,13 @@
       "Bash(adb shell pidof:*)",
       "Bash(adb shell am start-foreground-service:*)",
       "Bash(adb shell input keyevent:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(adb uninstall *)",
+      "Bash(adb shell *)",
+      "Bash(findstr \"n5.light\")",
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(git commit -m ' *)"
     ],
     "deny": [],
     "ask": []
