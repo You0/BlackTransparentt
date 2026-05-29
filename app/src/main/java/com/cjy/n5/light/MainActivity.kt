@@ -874,8 +874,7 @@ fun BrightnessControlScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
+                    .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .clip(RoundedCornerShape(48.dp))
                     .background(PanelBg)
