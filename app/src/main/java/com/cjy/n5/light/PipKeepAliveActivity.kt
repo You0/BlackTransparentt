@@ -48,6 +48,7 @@ class PipKeepAliveActivity : ComponentActivity() {
             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
         )
+        window.setBackgroundDrawableResource(android.R.color.transparent)
 
         bindOverlayService()
     }
