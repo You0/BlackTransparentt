@@ -1070,8 +1070,7 @@ fun BrightnessControlScreen(
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(40.dp))
-                            .background(CardBgColor)
+                            .background(CardBgColor, RoundedCornerShape(40.dp))
                             .border(1.dp, CardBorderColor, RoundedCornerShape(40.dp))
                             .padding(horizontal = 26.dp, vertical = 28.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
