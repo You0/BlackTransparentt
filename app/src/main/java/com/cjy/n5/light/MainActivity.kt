@@ -31,9 +31,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -925,7 +923,6 @@ fun BrightnessControlScreen(
                     // ===== .brightness-hero (1.4fr) =====
                     Column(
                         modifier = Modifier
-                            .fillMaxHeight()
                             .weight(1.4f)
                             .clip(RoundedCornerShape(40.dp))
                             .background(CardBgColor)
@@ -1071,7 +1068,9 @@ fun BrightnessControlScreen(
                     // ===== .control-pod (1fr) =====
                     Column(
                         modifier = Modifier
-                            .background(CardBgColor, RoundedCornerShape(40.dp))
+                            .weight(1f)
+                            .clip(RoundedCornerShape(40.dp))
+                            .background(CardBgColor)
                             .border(1.dp, CardBorderColor, RoundedCornerShape(40.dp))
                             .padding(horizontal = 26.dp, vertical = 28.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -1158,12 +1157,6 @@ fun BrightnessControlScreen(
 
                         // .exit-container
                         Column {
-                            Text(
-                                "⬇️ 测试：退出按钮在这里",
-                                fontSize = 16.sp,
-                                color = ComposeColor.Red,
-                                modifier = Modifier.fillMaxWidth()
-                            )
                             TvActionButton(
                                 icon = "🚪",
                                 text = "退出应用",
