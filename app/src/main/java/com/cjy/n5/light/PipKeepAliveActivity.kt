@@ -93,10 +93,12 @@ class PipKeepAliveActivity : ComponentActivity() {
         if (isInPictureInPictureMode) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
-                val params = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(16, 9))
-                    .build()
-                enterPictureInPictureMode(params)
+                val builder = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(1, 1))
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    builder.setSourceRectHint(android.graphics.Rect(0, 0, 1, 1))
+                }
+                enterPictureInPictureMode(builder.build())
                 Log.d(TAG, "enterPipMode: isInPip=$isInPictureInPictureMode")
             } catch (e: Exception) {
                 Log.e(TAG, "enterPipMode: 异常", e)
