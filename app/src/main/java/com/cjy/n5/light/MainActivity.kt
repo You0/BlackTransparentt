@@ -911,16 +911,25 @@ fun BrightnessControlScreen(
                         LiveDot()
                     }
                     // 退出按钮
-                    Text(
-                        "🚪 退出",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = DangerTextColor,
+                    var exitFocused by remember { mutableStateOf(false) }
+                    Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(if (exitFocused) DangerFocusedBg else ComposeColor.Transparent)
+                            .border(1.dp, if (exitFocused) DangerFocusedBorder else ComposeColor.Transparent, RoundedCornerShape(24.dp))
+                            .onFocusChanged { exitFocused = it.isFocused }
+                            .focusable()
                             .clickable { onStopService() }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "🚪 退出",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (exitFocused) ComposeColor.White else DangerTextColor
+                        )
+                    }
                 }
 
                 // ========== .core-dual ==========
