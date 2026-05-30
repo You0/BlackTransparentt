@@ -82,7 +82,6 @@ class PipKeepAliveActivity : ComponentActivity() {
         if (isInPictureInPictureMode) {
             isActive.value = true
             window.decorView.visibility = android.view.View.INVISIBLE
-            moveTaskToBack(true)
         } else {
             isActive.value = false
             Log.d(TAG, "已退出画中画，关闭")
