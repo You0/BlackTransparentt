@@ -911,6 +911,12 @@ fun BrightnessControlScreen(
                         LiveDot()
                     }
                     // 退出按钮
+                    Text(
+                        "Android ${Build.VERSION.SDK_INT}",
+                        fontSize = 12.sp,
+                        color = TextTertiary,
+                        modifier = Modifier.padding(end = 16.dp)
+                    )
                     var exitFocused by remember { mutableStateOf(false) }
                     Box(
                         modifier = Modifier
