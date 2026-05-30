@@ -94,7 +94,7 @@ class PipKeepAliveActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 val builder = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(1, 1))
+                    .setAspectRatio(Rational(2, 1))
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     builder.setSourceRectHint(android.graphics.Rect(0, 0, 1, 1))
                 }
