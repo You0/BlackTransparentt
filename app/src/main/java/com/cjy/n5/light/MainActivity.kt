@@ -910,6 +910,17 @@ fun BrightnessControlScreen(
                         Spacer(Modifier.width(12.dp))
                         LiveDot()
                     }
+                    // 退出按钮
+                    Text(
+                        "🚪 退出",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = DangerTextColor,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onStopService() }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
 
                 // ========== .core-dual ==========
