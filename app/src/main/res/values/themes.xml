@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.BlackTransparent" parent="android:Theme.Material.NoActionBar">
+    <style name="Base.BlackTransparent" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowNoTitle">true</item>
@@ -18,6 +18,6 @@
         <item name="android:windowTranslucentNavigation">true</item>
         <!-- 设置状态栏和导航栏图标为浅色（适合深色背景） -->
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
     </style>
+    <style name="Theme.BlackTransparent" parent="Base.BlackTransparent" />
 </resources>

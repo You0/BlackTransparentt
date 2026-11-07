@@ -356,6 +356,7 @@ class MainActivity : ComponentActivity() {
                         } catch (e: Exception) {}
 
                         BrightnessControlScreen(
+                            onReturn = { moveTaskToBack(true) },
                             onTogglePip = { enabled ->
                                 if (enabled) startPipKeepAlive()
                                 else PipKeepAliveActivity.instance?.finish()

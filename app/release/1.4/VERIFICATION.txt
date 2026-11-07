@@ -1,0 +1,32 @@
+亮度调节 1.4 验证记录
+日期：2026-11-07
+
+构建与检查
+- assembleRelease、lintRelease、testReleaseUnitTest 通过。
+- DiagnosticsTest：3 项通过，0 失败。
+- 完整 lint：0 errors，31 warnings，3 hints；仍有弃用 API、国际化等提示。
+- 使用与旧正式版和包名测试版相同的发布证书签名。
+  证书 SHA-256：79f8094b2b55753dc5421f28e4fc3330dbeee755e7882b6450ee3432f2aa3238
+
+逻辑核对
+- OverlayService.kt 与本次修改前文件 SHA-256 一致：
+  3B77A03E2226D24469F7CE93AC664BF4BE063D642FD07159A107926A2AF845D8
+- PipKeepAliveActivity.kt 与本次修改前文件 SHA-256 一致：
+  86B21285E69419F327AD27CFE1A3994C351A1E34D23DCFAD7EEE329350527AAE
+- MainActivity.kt 对比 f37a2d4 只增加 onReturn = { moveTaskToBack(true) } 回调。
+- Slider 数值换算、左右方向键处理与 f37a2d4 逐段去除空白后比较一致。
+- 新设置只保存和控制按钮显示，不调用保活启停接口。
+
+TV 模拟器：AOSP TV API 36，3840×2160
+- 从已安装的 com.jmgo.community.n5light 测试版覆盖安装成功。
+- 默认隐藏保活区域；宽幅调光界面无裁切。
+- 用方向键进入设置、切换显示保活按钮；两栏界面正常显示。
+- 开关在进程重启后保留；关闭后恢复宽幅界面。
+- 0% 截图全部 RGB=(0,0,0)；继续按右键可恢复至 100%。
+- 60% 预设后点击“返回”，前一个应用进入前台，OverlayService 仍为前台服务，遮罩窗口仍可见、alpha=0.4。
+- “退出”后 OverlayService 不再出现在运行服务记录中。
+- 截图与 UI 层级记录保存在 app/build/verification-1.4/（不纳入源码提交）。
+
+真机范围
+- 用户已确认相同包名的 1.3 测试版在当前坚果固件上不再被切后台清理。
+- 本次 1.4 发布包的 UI 和回退操作已在 TV 模拟器验证，尚未在真机重复测试。
