@@ -1,0 +1,14 @@
+Use case: ui-mockup refinement.
+Edit the attached UI design. The user LIKES this exact design and asks for it to be slightly more elegant. This is a careful visual refinement, NOT a redesign. Preserve the full 16:9 composition, same top header, same larger left brightness panel and smaller right keep-alive panel, all controls in the same general locations, same Chinese copy, same 100% value and selected 100% preset, same dark graphite / cool blue palette. Preserve the complete 0%–100% range. No functional changes, no new controls, no switches replacing buttons, no deleted actions.
+
+Make this look like an exceptionally well-crafted native Apple TV dark-mode interface. The concrete refinements are:
+1. Replace the heavy shiny beveled-metal appearance with soft, calm matte translucent graphite glass. Greatly reduce the brightness of the panel outlines. Use only subtle hairline borders and quiet ambient shadows.
+2. Remove the decorative diagonal ribbons behind the UI. Use a nearly uniform deep charcoal background with an extremely gentle, barely perceptible ambient gradient.
+3. Refine typography: crisp, elegant Chinese system typography like PingFang; reduce excessive boldness of headings to medium/semibold; make the large 100 numerals a more graceful regular/medium weight, remaining the visual anchor and easy to read from a couch. Make the percentage sign elegantly subordinate and aligned.
+4. Precisely harmonize the padding, alignments, icon stroke weights, corner radii, and spacing. Keep the ample space and two-column identity of the input; do not flatten it into a list.
+5. Keep the 100% preset as the only highlighted control, but use a calm pale ice-blue solid/translucent fill with dark text and a fine bright focus edge, removing the big fuzzy glow and glossy blue bulge. Other buttons should be understated graphite surfaces, clean and tactile, not shiny.
+6. Keep the slider blue but make its gradient more restrained, the thumb finely crafted and compact. Still show full progress at 100%.
+7. Use uniformly drawn refined monochrome outline icons. Keep the small green running indicator and the blue '推荐' badge, slightly quieter. Exit is a gentle warm gray rather than a prominent orange.
+
+Exact visible content to retain: '亮度调节', 'Android 36', '退出', '屏幕亮度', '100%', '遥控器左右微调', slider endpoints '0%' and '100%', preset buttons '25%' '60%' '100%', '保活策略', '常驻保活', '推荐', '开启后退出自动保持透明', '画中画保活', '爱奇艺/腾讯专用'.
+Output one polished full-screen UI image only, no perspective, no device frame, no explanatory annotations, no comparison sheet, no watermark. The change should feel like the same design after a meticulous senior designer's polish pass: calmer, lighter, more intentional, still legible and usable on a TV.

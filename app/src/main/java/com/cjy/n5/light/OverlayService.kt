@@ -3,8 +3,10 @@ package com.cjy.n5.light
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
+import android.hardware.input.InputManager
 import android.os.Build
 import android.os.IBinder
 import android.os.Binder
@@ -49,6 +51,32 @@ class OverlayService : Service(), LifecycleOwner {
     private lateinit var progressBar: ProgressBar
     private lateinit var alphaText: TextView
     private var overlayAlpha = 0.5f // 初始透明度 50%
+    private var maxTouchThroughAlpha = 1f
+    private var allowFullBlack = BrightnessSettings.DEFAULT_ALLOW_FULL_BLACK
+    private val brightnessPreferences by lazy { BrightnessSettings.preferences(this) }
+    private val settingsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == BrightnessSettings.ALLOW_FULL_BLACK) {
+            allowFullBlack = brightnessPreferences.getBoolean(
+                BrightnessSettings.ALLOW_FULL_BLACK, BrightnessSettings.DEFAULT_ALLOW_FULL_BLACK)
+            updateAlpha()
+        }
+    }
+
+    private fun configureOverlayWindow() {
+        // Disabled restores the original touch-through behavior: Android's
+        // capped window opacity multiplied by the black child's opacity.
+        params.alpha = if (allowFullBlack) overlayAlpha else maxTouchThroughAlpha
+        if (::blackOverlayView.isInitialized) {
+            blackOverlayView.alpha = if (allowFullBlack) 1f else overlayAlpha
+        }
+        params.flags = if (!allowFullBlack || overlayAlpha <= maxTouchThroughAlpha) {
+            params.flags or LayoutParams.FLAG_NOT_TOUCHABLE
+        } else {
+            // Android 12+ caps non-touchable overlays. Accept touch above the
+            // limit, but keep NOT_FOCUSABLE so the TV remote still works below.
+            params.flags and LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        }
+    }
 
     private fun createNotification(): Notification {
         // 创建通知渠道（Android 8.0+）
@@ -77,8 +105,9 @@ class OverlayService : Service(), LifecycleOwner {
     }
 
     private fun updateAlpha() {
-        if (::blackOverlayView.isInitialized) {
-            blackOverlayView.alpha = overlayAlpha
+        if (::params.isInitialized && ::overlayView.isInitialized && overlayView.isAttachedToWindow) {
+            configureOverlayWindow()
+            windowManager.updateViewLayout(overlayView, params)
         }
         if (::progressBar.isInitialized) {
             progressBar.progress = (100 - overlayAlpha * 100).toInt()  // 显示亮度值
@@ -98,6 +127,9 @@ class OverlayService : Service(), LifecycleOwner {
     override fun onCreate() {
         super.onCreate()
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
+        allowFullBlack = brightnessPreferences.getBoolean(
+            BrightnessSettings.ALLOW_FULL_BLACK, BrightnessSettings.DEFAULT_ALLOW_FULL_BLACK)
+        brightnessPreferences.registerOnSharedPreferenceChangeListener(settingsListener)
 
         // 必须在前台服务启动后5秒内调用startForeground
         try {
@@ -113,6 +145,11 @@ class OverlayService : Service(), LifecycleOwner {
         }
 
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        maxTouchThroughAlpha = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getSystemService(InputManager::class.java).maximumObscuringOpacityForTouch
+        } else {
+            1f
+        }
 
         // 创建窗口参数
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -145,6 +182,7 @@ class OverlayService : Service(), LifecycleOwner {
         params.gravity = Gravity.TOP or Gravity.START
         params.x = 0
         params.y = 0
+        configureOverlayWindow()
 
         // 创建传统View作为悬浮窗内容
         val rootView = FrameLayout(this).apply {
@@ -157,7 +195,7 @@ class OverlayService : Service(), LifecycleOwner {
         // 黑色覆盖层
         blackOverlayView = View(this).apply {
             setBackgroundColor(0xFF000000.toInt())
-            alpha = overlayAlpha
+            alpha = if (allowFullBlack) 1f else overlayAlpha
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -222,6 +260,7 @@ class OverlayService : Service(), LifecycleOwner {
 
     override fun onDestroy() {
         super.onDestroy()
+        brightnessPreferences.unregisterOnSharedPreferenceChangeListener(settingsListener)
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
 
         try {

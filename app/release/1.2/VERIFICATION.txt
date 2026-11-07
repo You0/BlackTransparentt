@@ -1,0 +1,10 @@
+PASS: assembleRelease including lintVitalRelease.
+PASS: v1.2 / versionCode 3, original release signing certificate, APK verification and zip alignment.
+PASS: TV emulator upgrades from original signed v1.1 without uninstalling that release.
+PASS: settings remote toggle ON/OFF, setting survives process restart in both states and APK replacement.
+PASS: OFF at 0% restores visible underlying content and touch-through behavior.
+PASS: ON at 0% screenshot is RGB(0,0,0) at all 3840x2160 pixels.
+PASS: single remote right key on slider recovers from 0% to 2%.
+PASS: full-screen main UI and settings dialog inspected on TV emulator.
+PASS: MainActivity, PiP and manifest hashes unchanged from before full-black work.
+LIMIT: TV emulator API 36 tested; physical JMGO Android 14 device not tested.
