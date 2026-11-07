@@ -68,7 +68,7 @@ private val Blue = Color(0xFFA4D5F8)
 private val DarkInk = Color(0xFF142B3D)
 private val CardShape = RoundedCornerShape(28.dp)
 private val ControlShape = RoundedCornerShape(16.dp)
-private enum class Glyph { Sparkles, Sun, Moon, Cloud, Remote, Settings, Lock, Picture, Exit, Back }
+private enum class Glyph { Sparkles, Sun, Moon, Cloud, Remote, Settings, Lock, Picture, Exit, Check }
 
 @Composable
 private fun UiText(
@@ -85,8 +85,7 @@ private fun UiText(
 }
 
 @Composable
-private fun ScreenFrame(onExit: (() -> Unit)? = null, onSettings: (() -> Unit)? = null,
-    onReturn: (() -> Unit)? = null,
+private fun ScreenFrame(onSettings: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit) {
     Box(Modifier.fillMaxSize().background(
         Brush.radialGradient(listOf(Color(0xFF202632), Color(0xFF10141D)), radius = 1500f)
@@ -118,34 +117,6 @@ private fun ScreenFrame(onExit: (() -> Unit)? = null, onSettings: (() -> Unit)? 
                         LineIcon(Glyph.Settings, Modifier.size(22.dp), color)
                         Spacer(Modifier.width(8.dp))
                         UiText("设置", 17.sp, color = color)
-                    }
-                }
-                if (onReturn != null) {
-                    var returnFocused by remember { mutableStateOf(false) }
-                    Row(Modifier.clip(RoundedCornerShape(12.dp))
-                        .background(if (returnFocused) Blue else Color.Transparent)
-                        .border(1.dp, if (returnFocused) Foreground else Color.Transparent, RoundedCornerShape(12.dp))
-                        .onFocusChanged { returnFocused = it.isFocused }
-                        .clickable(onClick = onReturn).padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        val color = if (returnFocused) DarkInk else Secondary
-                        LineIcon(Glyph.Back, Modifier.size(22.dp), color)
-                        Spacer(Modifier.width(8.dp))
-                        UiText("返回", 17.sp, color = color)
-                    }
-                }
-                if (onExit != null) {
-                    var focused by remember { mutableStateOf(false) }
-                    Row(Modifier.clip(RoundedCornerShape(12.dp))
-                        .background(if (focused) Blue else Color.Transparent)
-                        .border(1.dp, if (focused) Foreground else Color.Transparent, RoundedCornerShape(12.dp))
-                        .onFocusChanged { focused = it.isFocused }
-                        .clickable(onClick = onExit).padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        val color = if (focused) DarkInk else Secondary
-                        LineIcon(Glyph.Exit, Modifier.size(22.dp), color)
-                        Spacer(Modifier.width(8.dp))
-                        UiText("退出", 17.sp, color = color)
                     }
                 }
                 }
@@ -197,124 +168,140 @@ fun BrightnessControlScreen(
             focusRequester.requestFocus()
         })
     }
-    ScreenFrame(onExit = onStopService, onReturn = onReturn, onSettings = { showSettings = true }) {
+    ScreenFrame(onSettings = { showSettings = true }) {
         Row(Modifier.fillMaxWidth().weight(1f).padding(start = 23.dp, end = 23.dp, top = 32.dp, bottom = 36.dp),
             horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            Row(Modifier.weight(1.5f).fillMaxHeight().panel()
-                .padding(if (showKeepAliveControls) 30.dp else 40.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                if (!showKeepAliveControls) {
-                    Column(Modifier.width(250.dp), verticalArrangement = Arrangement.Center) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            LineIcon(Glyph.Sun, Modifier.size(24.dp), Blue)
-                            Spacer(Modifier.width(12.dp))
-                            UiText("屏幕亮度", 19.sp, color = Secondary)
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            UiText("$brightnessPercent", 88.sp, weight = FontWeight.Light)
-                            UiText("%", 27.sp, Modifier.padding(bottom = 18.dp), color = Secondary)
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        UiText("让光线，恰到好处。", 14.sp, color = Secondary)
-                    }
-                    Box(Modifier.padding(end = 40.dp).width(1.dp).height(180.dp).background(Edge))
-                }
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    if (showKeepAliveControls) {
-                        Row(Modifier.fillMaxWidth().height(64.dp), verticalAlignment = Alignment.CenterVertically) {
-                            LineIcon(Glyph.Sun, Modifier.size(28.dp))
-                            Spacer(Modifier.width(12.dp))
-                            UiText("屏幕亮度", 21.sp, weight = FontWeight.Medium)
-                            Spacer(Modifier.weight(1f))
+            Column(Modifier.weight(1.5f).fillMaxHeight().panel()
+                .padding(if (showKeepAliveControls) 24.dp else 36.dp)) {
+                Row(Modifier.fillMaxWidth().weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    if (!showKeepAliveControls) {
+                        Column(Modifier.width(250.dp), verticalArrangement = Arrangement.Center) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                LineIcon(Glyph.Sun, Modifier.size(24.dp), Blue)
+                                Spacer(Modifier.width(12.dp))
+                                UiText("屏幕亮度", 19.sp, color = Secondary)
+                            }
+                            Spacer(Modifier.height(16.dp))
                             Row(verticalAlignment = Alignment.Bottom) {
-                                UiText("$brightnessPercent", 60.sp, weight = FontWeight.Light)
-                                UiText("%", 26.sp, Modifier.padding(bottom = 10.dp), color = Foreground)
+                                UiText("$brightnessPercent", 88.sp, weight = FontWeight.Light)
+                                UiText("%", 27.sp, Modifier.padding(bottom = 18.dp), color = Secondary)
                             }
+                            Spacer(Modifier.height(12.dp))
+                            UiText("让光线，恰到好处。", 14.sp, color = Secondary)
                         }
-                        Spacer(Modifier.height(12.dp))
-                    } else {
-                        UiText("调整至舒适亮度", 23.sp, weight = FontWeight.Medium)
-                        Spacer(Modifier.height(14.dp))
+                        Box(Modifier.padding(end = 40.dp).width(1.dp).height(180.dp).background(Edge))
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        LineIcon(Glyph.Remote, Modifier.size(20.dp), Secondary)
-                        Spacer(Modifier.width(12.dp))
-                        UiText("遥控器左右微调", 15.sp, color = Secondary)
-                    }
-                    Spacer(Modifier.height(18.dp))
-                    Slider(
-                        value = currentBrightness,
-                        onValueChange = {
-                            currentBrightness = it
-                            onAlphaChange(1f - it)
-                        },
-                        valueRange = 0f..1f,
-                        modifier = Modifier.fillMaxWidth().height(40.dp)
-                            .focusRequester(focusRequester)
-                            .onFocusChanged { sliderFocused = it.hasFocus }
-                            .onPreviewKeyEvent { e ->
-                                // Keep both halves of a horizontal remote key on the
-                                // slider, including when it has reached an endpoint.
-                                if (e.type == KeyEventType.KeyUp &&
-                                    (e.key == Key.DirectionRight || e.key == Key.DirectionLeft)) {
-                                    return@onPreviewKeyEvent true
+                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        if (showKeepAliveControls) {
+                            Row(Modifier.fillMaxWidth().height(64.dp), verticalAlignment = Alignment.CenterVertically) {
+                                LineIcon(Glyph.Sun, Modifier.size(28.dp))
+                                Spacer(Modifier.width(12.dp))
+                                UiText("屏幕亮度", 21.sp, weight = FontWeight.Medium)
+                                Spacer(Modifier.weight(1f))
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    UiText("$brightnessPercent", 60.sp, weight = FontWeight.Light)
+                                    UiText("%", 26.sp, Modifier.padding(bottom = 10.dp), color = Foreground)
                                 }
-                                if (e.type == KeyEventType.KeyDown) {
-                                    when (e.key) {
-                                        Key.DirectionRight -> {
-                                            currentBrightness = (currentBrightness + 0.02f).coerceIn(0f, 1f)
-                                            onAlphaChange(1f - currentBrightness)
-                                            true
-                                        }
-                                        Key.DirectionLeft -> {
-                                            currentBrightness = (currentBrightness - 0.02f).coerceIn(0f, 1f)
-                                            onAlphaChange(1f - currentBrightness)
-                                            true
-                                        }
-                                        else -> false
-                                    }
-                                } else false
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        } else {
+                            UiText("调整至舒适亮度", 23.sp, weight = FontWeight.Medium)
+                            Spacer(Modifier.height(14.dp))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            LineIcon(Glyph.Remote, Modifier.size(20.dp), Secondary)
+                            Spacer(Modifier.width(12.dp))
+                            UiText("遥控器左右微调", 15.sp, color = Secondary)
+                        }
+                        Spacer(Modifier.height(18.dp))
+                        Slider(
+                            value = currentBrightness,
+                            onValueChange = {
+                                currentBrightness = it
+                                onAlphaChange(1f - it)
                             },
-                        thumb = {
-                            Box(Modifier.size(width = 8.dp, height = 22.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(if (sliderFocused) Blue else Foreground)
-                                .border(1.dp, Foreground, RoundedCornerShape(4.dp)))
-                        },
-                        track = {
-                            Canvas(Modifier.fillMaxWidth().height(9.dp)) {
-                                val corner = CornerRadius(size.height / 2)
-                                drawRoundRect(Color(0xFF3D4656), cornerRadius = corner)
-                                if (currentBrightness > 0f) {
-                                    drawRoundRect(Brush.horizontalGradient(listOf(Color(0xFF6EA8F1), Color(0xFFA1DDF8))),
-                                        size = Size(size.width * currentBrightness, size.height), cornerRadius = corner)
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth().height(40.dp)
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { sliderFocused = it.hasFocus }
+                                .onPreviewKeyEvent { e ->
+                                    // Keep both halves of a horizontal remote key on the
+                                    // slider, including when it has reached an endpoint.
+                                    if (e.type == KeyEventType.KeyUp &&
+                                        (e.key == Key.DirectionRight || e.key == Key.DirectionLeft)) {
+                                        return@onPreviewKeyEvent true
+                                    }
+                                    if (e.type == KeyEventType.KeyDown) {
+                                        when (e.key) {
+                                            Key.DirectionRight -> {
+                                                currentBrightness = (currentBrightness + 0.02f).coerceIn(0f, 1f)
+                                                onAlphaChange(1f - currentBrightness)
+                                                true
+                                            }
+                                            Key.DirectionLeft -> {
+                                                currentBrightness = (currentBrightness - 0.02f).coerceIn(0f, 1f)
+                                                onAlphaChange(1f - currentBrightness)
+                                                true
+                                            }
+                                            else -> false
+                                        }
+                                    } else false
+                                },
+                            thumb = {
+                                Box(Modifier.size(width = 8.dp, height = 22.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(if (sliderFocused) Blue else Foreground)
+                                    .border(1.dp, Foreground, RoundedCornerShape(4.dp)))
+                            },
+                            track = {
+                                Canvas(Modifier.fillMaxWidth().height(9.dp)) {
+                                    val corner = CornerRadius(size.height / 2)
+                                    drawRoundRect(Color(0xFF3D4656), cornerRadius = corner)
+                                    if (currentBrightness > 0f) {
+                                        drawRoundRect(Brush.horizontalGradient(listOf(Color(0xFF6EA8F1), Color(0xFFA1DDF8))),
+                                            size = Size(size.width * currentBrightness, size.height), cornerRadius = corner)
+                                    }
+                                    if (sliderFocused) drawRoundRect(Blue.copy(alpha = 0.6f), cornerRadius = corner,
+                                        style = Stroke(1.dp.toPx()))
                                 }
-                                if (sliderFocused) drawRoundRect(Blue.copy(alpha = 0.6f), cornerRadius = corner,
-                                    style = Stroke(1.dp.toPx()))
+                            },
+                            colors = SliderDefaults.colors(thumbColor = Foreground, activeTrackColor = Blue)
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            UiText("0%", 13.sp, color = Secondary)
+                            UiText("100%", 13.sp, color = Secondary)
+                        }
+                        Spacer(Modifier.height(if (showKeepAliveControls) 16.dp else 24.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            PresetControl(Glyph.Moon, "25%", currentBrightness == 0.25f, Modifier.weight(1f)) {
+                                currentBrightness = 0.25f
+                                onAlphaChange(0.75f)
                             }
-                        },
-                        colors = SliderDefaults.colors(thumbColor = Foreground, activeTrackColor = Blue)
-                    )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        UiText("0%", 13.sp, color = Secondary)
-                        UiText("100%", 13.sp, color = Secondary)
-                    }
-                    Spacer(Modifier.height(32.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        PresetControl(Glyph.Moon, "25%", currentBrightness == 0.25f, Modifier.weight(1f)) {
-                            currentBrightness = 0.25f
-                            onAlphaChange(0.75f)
-                        }
-                        PresetControl(Glyph.Cloud, "60%", currentBrightness == 0.60f, Modifier.weight(1f)) {
-                            currentBrightness = 0.60f
-                            onAlphaChange(0.40f)
-                        }
-                        PresetControl(Glyph.Sun, "100%", currentBrightness == 1f, Modifier.weight(1f)) {
-                            currentBrightness = 1f
-                            onAlphaChange(0f)
+                            PresetControl(Glyph.Cloud, "60%", currentBrightness == 0.60f, Modifier.weight(1f)) {
+                                currentBrightness = 0.60f
+                                onAlphaChange(0.40f)
+                            }
+                            PresetControl(Glyph.Sun, "100%", currentBrightness == 1f, Modifier.weight(1f)) {
+                                currentBrightness = 1f
+                                onAlphaChange(0f)
+                            }
                         }
                     }
+                }
+                Spacer(Modifier.height(20.dp))
+                Box(Modifier.fillMaxWidth().height(0.65.dp).background(Edge))
+                Spacer(Modifier.height(20.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (!showKeepAliveControls) {
+                        UiText("确认后收起界面，调光继续生效", 13.sp,
+                            Modifier.weight(1f), color = Secondary)
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
+                    BrightnessAction(Glyph.Check, "确定，保持此亮度", Modifier.width(250.dp),
+                        primary = true, onClick = onReturn)
+                    BrightnessAction(Glyph.Exit, "退出", Modifier.width(110.dp), onClick = onStopService)
                 }
             }
             if (showKeepAliveControls) {
@@ -342,6 +329,24 @@ fun BrightnessControlScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BrightnessAction(icon: Glyph, label: String, modifier: Modifier,
+    primary: Boolean = false, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val color = if (focused) DarkInk else if (primary) Blue else Secondary
+    Row(modifier.height(54.dp).clip(ControlShape)
+        .background(if (focused) Color(0xFFD7EDFF) else Color.Transparent)
+        .border(if (focused) 2.dp else 0.75.dp,
+            if (focused) Color.White else if (primary) Blue.copy(alpha = 0.55f) else Edge, ControlShape)
+        .onFocusChanged { focused = it.isFocused }
+        .clickable(onClick = onClick).padding(horizontal = 18.dp),
+        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        LineIcon(icon, Modifier.size(23.dp), color)
+        Spacer(Modifier.width(10.dp))
+        UiText(label, 18.sp, color = color, weight = FontWeight.Medium)
     }
 }
 
@@ -546,12 +551,12 @@ private fun DiagnosticAction(label: String, modifier: Modifier, selected: Boolea
 @Composable
 private fun PresetControl(icon: Glyph, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val highlighted = selected || focused
-    val color = if (highlighted) DarkInk else Foreground
+    val color = if (focused) DarkInk else if (selected) Blue else Foreground
     Row(modifier.height(50.dp).clip(ControlShape)
-        .background(if (highlighted) Brush.verticalGradient(listOf(Color(0xFFB6DDF8), Color(0xFF9CCEF1)))
+        .background(if (focused) Brush.verticalGradient(listOf(Color(0xFFB6DDF8), Color(0xFF9CCEF1)))
+            else if (selected) Brush.verticalGradient(listOf(Color(0xFF33485D), Color(0xFF293B4D)))
             else Brush.verticalGradient(listOf(Color(0xFF303743), Color(0xFF2A303C))))
-        .border(if (focused) 1.5.dp else 0.65.dp, if (focused) Color.White else if (selected) Color(0xFFD4EBFF) else Edge, ControlShape)
+        .border(if (focused) 1.5.dp else 0.65.dp, if (focused) Color.White else if (selected) Blue else Edge, ControlShape)
         .onFocusChanged { focused = it.isFocused }.clickable(onClick = onClick)
         .padding(horizontal = 10.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -645,8 +650,8 @@ private fun LineIcon(icon: Glyph, modifier: Modifier = Modifier, color: Color = 
                     drawCircle(color, 0.8f, Offset(9.5f, 15f)); drawCircle(color, 0.8f, Offset(14.5f, 15f))
                     line(10f, 19f, 14f, 19f)
                 }
-                Glyph.Back -> {
-                    line(20f, 12f, 4f, 12f); line(4f, 12f, 11f, 5f); line(4f, 12f, 11f, 19f)
+                Glyph.Check -> {
+                    line(4f, 12f, 9f, 17f); line(9f, 17f, 21f, 5f)
                 }
                 Glyph.Exit -> {
                     path { moveTo(13f, 4f); lineTo(5f, 4f); quadraticTo(3f, 4f, 3f, 6f); lineTo(3f, 19f); quadraticTo(3f, 21f, 5f, 21f); lineTo(13f, 21f) }

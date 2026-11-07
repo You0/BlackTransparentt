@@ -1,0 +1,28 @@
+亮度调节 1.4.1 验证记录
+日期：2026-11-07
+
+发布包
+- package：com.jmgo.community.n5light
+- versionName：1.4.1；versionCode：6
+- apksigner verify 通过；与 1.4 相同发布证书。
+- 证书 SHA-256：79f8094b2b55753dc5421f28e4fc3330dbeee755e7882b6450ee3432f2aa3238
+- U 盘副本 I:/BlackTransparent/BlackTransparent-1.4.1-release.apk 与本地发布包 SHA-256 一致。
+
+构建与源码核对
+- assembleRelease、lintRelease、testReleaseUnitTest 通过。
+- 完整 lint：0 errors、31 warnings、3 hints；保留已有警告。
+- DiagnosticsTest：3 项通过，0 失败。
+- MainActivity、OverlayService、PipKeepAliveActivity、BrightnessSettings 与 1.4 源码一致。
+- Slider 的亮度换算及遥控器左右键处理与 1.4 去除空白后逐段比较一致。
+- 业务源码仅修改 BrightnessScreen.kt 的布局、按钮文案与颜色；沿用已有确认和退出回调。
+
+TV 模拟器验证
+- 设备：emulator-5556，AOSP TV API 36，3840×2160。
+- 本轮 UI 预览验证：保活区域显示和隐藏两种布局无按钮裁切。
+- 确认按钮位于退出按钮左侧，退出在最右侧。
+- 确认按钮未获焦点时深色底和细描边，获焦点时浅蓝底和加粗亮边。
+- 遥控器可从滑杆经预设按钮移动到确认按钮。
+- 确认操作后遮罩服务保持前台运行，60% 亮度对应的遮罩 alpha=0.4 保持可见。
+- 退出操作后运行服务列表不再含 OverlayService。
+- 最终 1.4.1 签名发布包覆盖安装成功，启动 Status: ok。
+- 本次未在实际坚果投影仪重复验证；包名及保活逻辑没有变化。
