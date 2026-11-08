@@ -1,0 +1,25 @@
+亮度调节 1.4.2 验证记录
+日期：2026-11-08
+
+发布包
+- 包名：com.jmgo.community.n5light；versionName：1.4.2；versionCode：7。
+- apksigner verify 通过，发布证书与此前版本一致。
+- 证书 SHA-256：79f8094b2b55753dc5421f28e4fc3330dbeee755e7882b6450ee3432f2aa3238。
+- APK 文件 SHA-256 见 SHA256SUMS.txt。
+
+构建与检查
+- assembleRelease、lintRelease、testReleaseUnitTest 通过。
+- 完整 lint：0 errors、31 warnings、3 hints；保留已有警告。
+- DiagnosticsTest：3 项通过，0 失败。
+- MainActivity、OverlayService、PipKeepAliveActivity、BrightnessSettings 与 1.4.1 源码一致。
+- Slider 数值换算与遥控器方向键处理与 1.4.1 去除空白后比较一致。
+- 业务源码仅修改 BrightnessScreen.kt 的界面布局、文字和配色。
+
+本轮 UI 预览验证
+- AOSP TV API 36，3840×2160，模拟器实际安装、运行深色预览包。
+- 检查默认隐藏保活布局、保活展开布局、设置界面和确认按钮焦点样式，无内容裁切。
+- 遥控器可从滑杆经预设移动到确认按钮。
+- 检查后将保活入口恢复隐藏；截图位于 app/build/verification-dark/。
+- 最终发布构建在已验证的界面源码基础上仅升级版本号。
+- 发布时模拟器已离线，未重复安装最终版本号构建；本次未在坚果真机复测。
+- 发布时 I:/BlackTransparent 不可用，未复制到 U 盘。

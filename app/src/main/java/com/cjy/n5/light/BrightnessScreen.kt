@@ -37,7 +37,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -61,13 +60,17 @@ import kotlinx.coroutines.withContext
 
 // Presentation only. Service callbacks, brightness conversion and mode gating
 // intentionally match the original screen.
-private val Foreground = Color(0xFFECEFF6)
-private val Secondary = Color(0xFFADB5C5)
-private val Edge = Color(0xFF3A414E)
-private val Blue = Color(0xFFA4D5F8)
-private val DarkInk = Color(0xFF142B3D)
-private val CardShape = RoundedCornerShape(28.dp)
-private val ControlShape = RoundedCornerShape(16.dp)
+private val Foreground = Color(0xFFE8E7E4)
+private val Secondary = Color(0xFF9D9E9F)
+private val Edge = Color(0xFF303234)
+private val Accent = Color(0xFFE2E0DA)
+private val DarkInk = Color(0xFF171819)
+private val Background = Color(0xFF101112)
+private val Surface = Color(0xFF191B1D)
+private val RaisedSurface = Color(0xFF222426)
+private val SelectedSurface = Color(0xFF303234)
+private val CardShape = RoundedCornerShape(18.dp)
+private val ControlShape = RoundedCornerShape(12.dp)
 private enum class Glyph { Sparkles, Sun, Moon, Cloud, Remote, Settings, Lock, Picture, Exit, Check }
 
 @Composable
@@ -87,28 +90,23 @@ private fun UiText(
 @Composable
 private fun ScreenFrame(onSettings: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().background(
-        Brush.radialGradient(listOf(Color(0xFF202632), Color(0xFF10141D)), radius = 1500f)
-    )) {
-        Column(Modifier.fillMaxSize()
-            .background(Brush.linearGradient(listOf(Color(0xFF20252F), Color(0xFF181D26), Color(0xFF20252F))))) {
-            Box(Modifier.fillMaxWidth().height(74.dp).drawBehind {
+    Box(Modifier.fillMaxSize().background(Background)) {
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxWidth().height(76.dp).drawBehind {
                 drawLine(Edge.copy(alpha = 0.75f), Offset(0f, size.height),
                     Offset(size.width, size.height), strokeWidth = 0.6.dp.toPx())
-            }.padding(horizontal = 36.dp)) {
+            }.padding(horizontal = 48.dp)) {
                 Row(Modifier.align(Alignment.CenterStart), verticalAlignment = Alignment.CenterVertically) {
-                    LineIcon(Glyph.Sparkles, Modifier.size(28.dp))
-                    Spacer(Modifier.width(14.dp))
-                    UiText("亮度调节", 25.sp, weight = FontWeight.Medium)
-                    Spacer(Modifier.width(14.dp))
-                    Box(Modifier.size(7.dp).background(Color(0xFF32E99B), CircleShape))
+                    LineIcon(Glyph.Sun, Modifier.size(23.dp), Secondary)
+                    Spacer(Modifier.width(12.dp))
+                    UiText("亮度调节", 21.sp, weight = FontWeight.Medium)
                 }
                 Row(Modifier.align(Alignment.CenterEnd), horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                 if (onSettings != null) {
                     var settingsFocused by remember { mutableStateOf(false) }
                     Row(Modifier.clip(RoundedCornerShape(12.dp))
-                        .background(if (settingsFocused) Blue else Color.Transparent)
+                        .background(if (settingsFocused) Accent else Color.Transparent)
                         .border(1.dp, if (settingsFocused) Foreground else Color.Transparent, RoundedCornerShape(12.dp))
                         .onFocusChanged { settingsFocused = it.isFocused }
                         .clickable(onClick = onSettings).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -127,7 +125,7 @@ private fun ScreenFrame(onSettings: (() -> Unit)? = null,
 }
 
 private fun Modifier.panel(): Modifier = clip(CardShape)
-    .background(Brush.linearGradient(listOf(Color(0xFF292F3B), Color(0xFF20252F), Color(0xFF252B36))))
+    .background(Surface)
     .border(0.65.dp, Edge, CardShape)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -169,29 +167,30 @@ fun BrightnessControlScreen(
         })
     }
     ScreenFrame(onSettings = { showSettings = true }) {
-        Row(Modifier.fillMaxWidth().weight(1f).padding(start = 23.dp, end = 23.dp, top = 32.dp, bottom = 36.dp),
+        Row(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 28.dp, vertical = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            Column(Modifier.weight(1.5f).fillMaxHeight().panel()
-                .padding(if (showKeepAliveControls) 24.dp else 36.dp)) {
+            Column(Modifier.weight(1.5f).fillMaxHeight()
+                .then(if (showKeepAliveControls) Modifier.panel() else Modifier)
+                .padding(if (showKeepAliveControls) 24.dp else 20.dp)) {
                 Row(Modifier.fillMaxWidth().weight(1f), verticalAlignment = Alignment.CenterVertically) {
                     if (!showKeepAliveControls) {
-                        Column(Modifier.width(250.dp), verticalArrangement = Arrangement.Center) {
+                        Column(Modifier.width(250.dp).padding(start = 12.dp), verticalArrangement = Arrangement.Center) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                LineIcon(Glyph.Sun, Modifier.size(24.dp), Blue)
-                                Spacer(Modifier.width(12.dp))
-                                UiText("屏幕亮度", 19.sp, color = Secondary)
+                                UiText("当前亮度", 16.sp, color = Secondary)
                             }
                             Spacer(Modifier.height(16.dp))
                             Row(verticalAlignment = Alignment.Bottom) {
-                                UiText("$brightnessPercent", 88.sp, weight = FontWeight.Light)
+                                UiText("$brightnessPercent", 96.sp, weight = FontWeight.Light)
                                 UiText("%", 27.sp, Modifier.padding(bottom = 18.dp), color = Secondary)
                             }
                             Spacer(Modifier.height(12.dp))
-                            UiText("让光线，恰到好处。", 14.sp, color = Secondary)
+                            UiText("0–100% 连续调节", 13.sp, color = Secondary)
                         }
-                        Box(Modifier.padding(end = 40.dp).width(1.dp).height(180.dp).background(Edge))
+                        Spacer(Modifier.width(40.dp))
                     }
-                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    Column(Modifier.weight(1f)
+                        .then(if (!showKeepAliveControls) Modifier.panel().padding(24.dp) else Modifier)
+                        .verticalScroll(rememberScrollState())) {
                         if (showKeepAliveControls) {
                             Row(Modifier.fillMaxWidth().height(64.dp), verticalAlignment = Alignment.CenterVertically) {
                                 LineIcon(Glyph.Sun, Modifier.size(28.dp))
@@ -205,15 +204,15 @@ fun BrightnessControlScreen(
                             }
                             Spacer(Modifier.height(12.dp))
                         } else {
-                            UiText("调整至舒适亮度", 23.sp, weight = FontWeight.Medium)
-                            Spacer(Modifier.height(14.dp))
+                            UiText("微调亮度", 18.sp, weight = FontWeight.Medium)
+                            Spacer(Modifier.height(10.dp))
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            LineIcon(Glyph.Remote, Modifier.size(20.dp), Secondary)
-                            Spacer(Modifier.width(12.dp))
-                            UiText("遥控器左右微调", 15.sp, color = Secondary)
+                            LineIcon(Glyph.Remote, Modifier.size(18.dp), Secondary)
+                            Spacer(Modifier.width(10.dp))
+                            UiText("遥控器左右微调", 13.sp, color = Secondary)
                         }
-                        Spacer(Modifier.height(18.dp))
+                        Spacer(Modifier.height(14.dp))
                         Slider(
                             value = currentBrightness,
                             onValueChange = {
@@ -250,28 +249,28 @@ fun BrightnessControlScreen(
                             thumb = {
                                 Box(Modifier.size(width = 8.dp, height = 22.dp)
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(if (sliderFocused) Blue else Foreground)
+                                    .background(if (sliderFocused) Accent else Foreground)
                                     .border(1.dp, Foreground, RoundedCornerShape(4.dp)))
                             },
                             track = {
-                                Canvas(Modifier.fillMaxWidth().height(9.dp)) {
+                                Canvas(Modifier.fillMaxWidth().height(5.dp)) {
                                     val corner = CornerRadius(size.height / 2)
-                                    drawRoundRect(Color(0xFF3D4656), cornerRadius = corner)
+                                    drawRoundRect(Edge, cornerRadius = corner)
                                     if (currentBrightness > 0f) {
-                                        drawRoundRect(Brush.horizontalGradient(listOf(Color(0xFF6EA8F1), Color(0xFFA1DDF8))),
+                                        drawRoundRect(Accent,
                                             size = Size(size.width * currentBrightness, size.height), cornerRadius = corner)
                                     }
-                                    if (sliderFocused) drawRoundRect(Blue.copy(alpha = 0.6f), cornerRadius = corner,
+                                    if (sliderFocused) drawRoundRect(Accent.copy(alpha = 0.6f), cornerRadius = corner,
                                         style = Stroke(1.dp.toPx()))
                                 }
                             },
-                            colors = SliderDefaults.colors(thumbColor = Foreground, activeTrackColor = Blue)
+                            colors = SliderDefaults.colors(thumbColor = Foreground, activeTrackColor = Accent)
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             UiText("0%", 13.sp, color = Secondary)
                             UiText("100%", 13.sp, color = Secondary)
                         }
-                        Spacer(Modifier.height(if (showKeepAliveControls) 16.dp else 24.dp))
+                        Spacer(Modifier.height(16.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             PresetControl(Glyph.Moon, "25%", currentBrightness == 0.25f, Modifier.weight(1f)) {
                                 currentBrightness = 0.25f
@@ -336,11 +335,11 @@ fun BrightnessControlScreen(
 private fun BrightnessAction(icon: Glyph, label: String, modifier: Modifier,
     primary: Boolean = false, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val color = if (focused) DarkInk else if (primary) Blue else Secondary
+    val color = if (focused) DarkInk else if (primary) Accent else Secondary
     Row(modifier.height(54.dp).clip(ControlShape)
-        .background(if (focused) Color(0xFFD7EDFF) else Color.Transparent)
+        .background(if (focused) Accent else if (primary) RaisedSurface else Color.Transparent)
         .border(if (focused) 2.dp else 0.75.dp,
-            if (focused) Color.White else if (primary) Blue.copy(alpha = 0.55f) else Edge, ControlShape)
+            if (focused) Color.White else if (primary) Secondary.copy(alpha = 0.5f) else Edge, ControlShape)
         .onFocusChanged { focused = it.isFocused }
         .clickable(onClick = onClick).padding(horizontal = 18.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -378,8 +377,8 @@ private fun BrightnessSettingsDialog(showKeepAliveControls: Boolean,
             }
             Spacer(Modifier.height(20.dp))
             Row(Modifier.fillMaxWidth().clip(ControlShape)
-                .background(if (focused) Color(0xFF33485D) else Color(0xFF2D333F))
-                .border(if (focused) 1.5.dp else 0.65.dp, if (focused) Blue else Edge, ControlShape)
+                .background(if (focused) SelectedSurface else RaisedSurface)
+                .border(if (focused) 1.5.dp else 0.65.dp, if (focused) Accent else Edge, ControlShape)
                 .focusRequester(toggleFocus).onFocusChanged { focused = it.isFocused }
                 .toggleable(value = allowFullBlack, role = Role.Switch, onValueChange = { enabled ->
                     allowFullBlack = enabled
@@ -391,8 +390,8 @@ private fun BrightnessSettingsDialog(showKeepAliveControls: Boolean,
                     UiText(if (allowFullBlack) "已开启 · 立即生效" else "已关闭 · 原版触摸穿透", 12.sp, color = Secondary)
                 }
                 Switch(checked = allowFullBlack, onCheckedChange = null,
-                    colors = SwitchDefaults.colors(checkedThumbColor = DarkInk, checkedTrackColor = Blue,
-                        uncheckedThumbColor = Secondary, uncheckedTrackColor = Color(0xFF3A414E)))
+                    colors = SwitchDefaults.colors(checkedThumbColor = DarkInk, checkedTrackColor = Accent,
+                        uncheckedThumbColor = Secondary, uncheckedTrackColor = Edge))
             }
             Spacer(Modifier.height(16.dp))
             UiText("开启后，0% 可完全遮住画面。极暗时（通常低于 20%），鼠标和触屏无法穿透，遥控器方向键仍可使用。",
@@ -404,9 +403,9 @@ private fun BrightnessSettingsDialog(showKeepAliveControls: Boolean,
             UiText("设置会自动保存。投影仪自身的底光不会被关闭。", 12.sp, color = Secondary)
             Spacer(Modifier.height(20.dp))
             Row(Modifier.fillMaxWidth().clip(ControlShape)
-                .background(if (keepAliveToggleFocused) Color(0xFF33485D) else Color(0xFF2D333F))
+                .background(if (keepAliveToggleFocused) SelectedSurface else RaisedSurface)
                 .border(if (keepAliveToggleFocused) 1.5.dp else 0.65.dp,
-                    if (keepAliveToggleFocused) Blue else Edge, ControlShape)
+                    if (keepAliveToggleFocused) Accent else Edge, ControlShape)
                 .onFocusChanged { keepAliveToggleFocused = it.isFocused }
                 .toggleable(value = showKeepAliveControls, role = Role.Switch,
                     onValueChange = onShowKeepAliveControlsChange)
@@ -417,8 +416,8 @@ private fun BrightnessSettingsDialog(showKeepAliveControls: Boolean,
                     UiText("在主界面显示常驻保活与画中画保活", 12.sp, color = Secondary)
                 }
                 Switch(checked = showKeepAliveControls, onCheckedChange = null,
-                    colors = SwitchDefaults.colors(checkedThumbColor = DarkInk, checkedTrackColor = Blue,
-                        uncheckedThumbColor = Secondary, uncheckedTrackColor = Color(0xFF3A414E)))
+                    colors = SwitchDefaults.colors(checkedThumbColor = DarkInk, checkedTrackColor = Accent,
+                        uncheckedThumbColor = Secondary, uncheckedTrackColor = Edge))
             }
             Spacer(Modifier.height(10.dp))
             UiText("默认隐藏。此开关只改变按钮显示，不会开启或关闭正在运行的保活。", 12.sp, color = Secondary)
@@ -505,7 +504,7 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
                 DiagnosticAction("返回设置", Modifier.weight(1f), onClick = onDismiss)
             }
             Spacer(Modifier.height(10.dp))
-            UiText(status, 12.sp, color = Blue)
+            UiText(status, 12.sp, color = Accent)
             if (tab == 1) {
                 Spacer(Modifier.height(8.dp))
                 UiText(Diagnostics.EXIT_NOTE, 12.sp, color = Secondary)
@@ -520,8 +519,8 @@ private fun DiagnosticsDialog(onDismiss: () -> Unit) {
                     items(entries) { entry ->
                         var entryFocused by remember { mutableStateOf(false) }
                         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                            .background(if (entryFocused) Color(0xFF33485D) else Color(0xFF2D333F))
-                            .border(1.dp, if (entryFocused) Blue else Edge, RoundedCornerShape(12.dp))
+                            .background(if (entryFocused) SelectedSurface else RaisedSurface)
+                            .border(1.dp, if (entryFocused) Accent else Edge, RoundedCornerShape(12.dp))
                             .onFocusChanged { entryFocused = it.isFocused }.focusable().padding(14.dp)) {
                             UiText(entry.title, 16.sp, weight = FontWeight.Medium)
                             Spacer(Modifier.height(5.dp))
@@ -540,8 +539,8 @@ private fun DiagnosticAction(label: String, modifier: Modifier, selected: Boolea
     enabled: Boolean = true, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Box(modifier.height(42.dp).clip(RoundedCornerShape(10.dp))
-        .background(if (focused) Blue else if (selected) Color(0xFF33485D) else Color(0xFF2D333F))
-        .border(1.dp, if (focused || selected) Blue else Edge, RoundedCornerShape(10.dp))
+        .background(if (focused) Accent else if (selected) SelectedSurface else RaisedSurface)
+        .border(1.dp, if (focused || selected) Accent else Edge, RoundedCornerShape(10.dp))
         .onFocusChanged { focused = it.isFocused }.clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center) {
         UiText(label, 14.sp, color = if (!enabled) Secondary.copy(alpha = 0.4f) else if (focused) DarkInk else Foreground)
@@ -551,12 +550,10 @@ private fun DiagnosticAction(label: String, modifier: Modifier, selected: Boolea
 @Composable
 private fun PresetControl(icon: Glyph, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val color = if (focused) DarkInk else if (selected) Blue else Foreground
+    val color = if (focused) DarkInk else if (selected) Accent else Foreground
     Row(modifier.height(50.dp).clip(ControlShape)
-        .background(if (focused) Brush.verticalGradient(listOf(Color(0xFFB6DDF8), Color(0xFF9CCEF1)))
-            else if (selected) Brush.verticalGradient(listOf(Color(0xFF33485D), Color(0xFF293B4D)))
-            else Brush.verticalGradient(listOf(Color(0xFF303743), Color(0xFF2A303C))))
-        .border(if (focused) 1.5.dp else 0.65.dp, if (focused) Color.White else if (selected) Blue else Edge, ControlShape)
+        .background(if (focused) Accent else if (selected) SelectedSurface else RaisedSurface)
+        .border(if (focused) 1.5.dp else 0.65.dp, if (focused) Color.White else if (selected) Accent else Edge, ControlShape)
         .onFocusChanged { focused = it.isFocused }.clickable(onClick = onClick)
         .padding(horizontal = 10.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -575,8 +572,8 @@ private fun ModeControl(
     val highlighted = focused && enabled
     val color = if (!enabled) Secondary.copy(alpha = 0.4f) else if (highlighted) DarkInk else Foreground
     Row(modifier.fillMaxWidth().height(58.dp).clip(ControlShape)
-        .background(if (highlighted) Blue else if (active) Color(0xFF33485D) else Color(0xFF2D333F))
-        .border(if (highlighted) 1.5.dp else 0.65.dp, if (highlighted) Color.White else if (active) Blue else Edge, ControlShape)
+        .background(if (highlighted) Accent else if (active) SelectedSurface else RaisedSurface)
+        .border(if (highlighted) 1.5.dp else 0.65.dp, if (highlighted) Color.White else if (active) Accent else Edge, ControlShape)
         .onFocusChanged { focused = it.isFocused }.clickable(enabled = enabled, onClick = onClick)
         .padding(horizontal = 12.dp), horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically) {
@@ -585,8 +582,8 @@ private fun ModeControl(
         UiText(label, 18.sp, color = color, weight = FontWeight.Medium)
         if (badge != null) {
             Spacer(Modifier.width(12.dp))
-            UiText(badge, 12.sp, Modifier.border(0.8.dp, if (highlighted) DarkInk else Blue, CircleShape)
-                .padding(horizontal = 8.dp, vertical = 4.dp), color = if (highlighted) DarkInk else Blue)
+            UiText(badge, 12.sp, Modifier.border(0.8.dp, if (highlighted) DarkInk else Accent, CircleShape)
+                .padding(horizontal = 8.dp, vertical = 4.dp), color = if (highlighted) DarkInk else Accent)
         }
     }
 }
