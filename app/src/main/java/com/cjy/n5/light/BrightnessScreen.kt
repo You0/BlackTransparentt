@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.cos
+import kotlin.math.abs
 import kotlin.math.sin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -274,15 +275,24 @@ fun BrightnessControlScreen(
                         }
                         Spacer(Modifier.height(16.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            PresetControl(Glyph.Moon, "25%", currentBrightness == 0.25f, Modifier.weight(1f)) {
+                            PresetControl("0%", currentBrightness == 0f, Modifier.weight(1f)) {
+                                currentBrightness = 0f
+                                onAlphaChange(1f)
+                                focusRequester.requestFocus()
+                            }
+                            PresetControl("10%", abs(currentBrightness - 0.10f) < 0.00001f, Modifier.weight(1f)) {
+                                currentBrightness = 0.10f
+                                onAlphaChange(0.90f)
+                            }
+                            PresetControl("25%", currentBrightness == 0.25f, Modifier.weight(1f)) {
                                 currentBrightness = 0.25f
                                 onAlphaChange(0.75f)
                             }
-                            PresetControl(Glyph.Cloud, "60%", currentBrightness == 0.60f, Modifier.weight(1f)) {
+                            PresetControl("60%", currentBrightness == 0.60f, Modifier.weight(1f)) {
                                 currentBrightness = 0.60f
                                 onAlphaChange(0.40f)
                             }
-                            PresetControl(Glyph.Sun, "100%", currentBrightness == 1f, Modifier.weight(1f)) {
+                            PresetControl("100%", currentBrightness == 1f, Modifier.weight(1f)) {
                                 currentBrightness = 1f
                                 onAlphaChange(0f)
                             }
@@ -550,7 +560,7 @@ private fun DiagnosticAction(label: String, modifier: Modifier, selected: Boolea
 }
 
 @Composable
-private fun PresetControl(icon: Glyph, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun PresetControl(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val color = if (focused) DarkInk else if (selected) Accent else Foreground
     Row(modifier.height(50.dp).clip(ControlShape)
@@ -559,8 +569,6 @@ private fun PresetControl(icon: Glyph, label: String, selected: Boolean, modifie
         .onFocusChanged { focused = it.isFocused }.clickable(onClick = onClick)
         .padding(horizontal = 10.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        LineIcon(icon, Modifier.size(24.dp), color)
-        Spacer(Modifier.width(10.dp))
         UiText(label, 18.sp, color = color)
     }
 }
