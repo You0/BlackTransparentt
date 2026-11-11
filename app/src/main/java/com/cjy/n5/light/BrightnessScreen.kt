@@ -154,7 +154,7 @@ fun BrightnessControlScreen(
 
     LaunchedEffect(initialAlpha) { currentBrightness = 1f - initialAlpha }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
-    val brightnessPercent = (currentBrightness * 100).toInt()
+    val brightnessPercent = BrightnessAdjustment.percentText(currentBrightness)
 
     if (showSettings) {
         BrightnessSettingsDialog(showKeepAliveControls = showKeepAliveControls,
@@ -210,7 +210,9 @@ fun BrightnessControlScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             LineIcon(Glyph.Remote, Modifier.size(18.dp), Secondary)
                             Spacer(Modifier.width(10.dp))
-                            UiText("遥控器左右微调", 13.sp, color = Secondary)
+                            UiText(if (BrightnessAdjustment.isFine(currentBrightness))
+                                "精细调整 · 左右每次 0.1%" else "左右调节 · 低于 20% 精细调整",
+                                13.sp, color = Secondary)
                         }
                         Spacer(Modifier.height(14.dp))
                         Slider(
@@ -233,12 +235,12 @@ fun BrightnessControlScreen(
                                     if (e.type == KeyEventType.KeyDown) {
                                         when (e.key) {
                                             Key.DirectionRight -> {
-                                                currentBrightness = (currentBrightness + 0.02f).coerceIn(0f, 1f)
+                                                currentBrightness = BrightnessAdjustment.step(currentBrightness, increase = true)
                                                 onAlphaChange(1f - currentBrightness)
                                                 true
                                             }
                                             Key.DirectionLeft -> {
-                                                currentBrightness = (currentBrightness - 0.02f).coerceIn(0f, 1f)
+                                                currentBrightness = BrightnessAdjustment.step(currentBrightness, increase = false)
                                                 onAlphaChange(1f - currentBrightness)
                                                 true
                                             }

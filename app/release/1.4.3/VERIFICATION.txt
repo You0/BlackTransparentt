@@ -1,0 +1,17 @@
+亮度调节 1.4.3 验证记录
+日期：2026-11-11
+
+发布包
+- 包名：com.jmgo.community.n5light；versionName：1.4.3；versionCode：8。
+- apksigner verify 通过，v2/v3 签名有效，与此前发布证书一致。
+- 证书 SHA-256：79f8094b2b55753dc5421f28e4fc3330dbeee755e7882b6450ee3432f2aa3238。
+- APK 文件 SHA-256 见 SHA256SUMS.txt。
+
+构建与检查
+- assembleRelease、lintRelease、testReleaseUnitTest 通过。
+- Lint：0 errors、31 warnings、3 hints。
+- BrightnessAdjustmentTest：4 项通过；DiagnosticsTest：3 项通过。
+- 覆盖精细/普通步进、20% 边界切换、0/100% 限幅、小数显示和连续 400 次亮度/透明度转换。
+- MainActivity、OverlayService、PipKeepAliveActivity、BrightnessSettings 与 1.4.2 源码一致。
+- 业务源码仅新增遥控器步进/显示辅助方法，并接入 BrightnessScreen。
+- 本轮未在模拟器或坚果真机运行验证。
